@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { NavCartIndicator } from "@/components/nav-cart-indicator";
+import { SiteFooter } from "@/components/site-footer";
+import { UserNav } from "@/components/user-nav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,9 +28,60 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
       >
-        {children}
+        <header className="border-b border-neutral-800 bg-black/90 shadow-[0_10px_25px_rgba(0,0,0,0.6)]">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-8 py-5 text-sm">
+            <a href="/" className="text-[15px] font-semibold tracking-tight">
+              smart-lock.ro
+            </a>
+            <nav className="flex flex-1 items-center justify-center gap-9 text-[14px] font-medium">
+              <a href="/" className="text-neutral-200 hover:text-white">
+                Acasă
+              </a>
+              <a href="/products" className="text-neutral-200 hover:text-white">
+                Produse
+              </a>
+              <a href="/services" className="text-neutral-200 hover:text-white">
+                Servicii
+              </a>
+              <a href="/about" className="text-neutral-200 hover:text-white">
+                Despre noi
+              </a>
+              <a href="/contact" className="text-neutral-200 hover:text-white">
+                Contact
+              </a>
+            </nav>
+            <div className="flex items-center gap-5 text-neutral-200">
+              {/* placeholder pentru wishlist */}
+              <button
+                type="button"
+                className="relative flex h-8 w-8 items-center justify-center hover:text-white"
+                aria-label="Favorite (în curând)"
+              >
+                <svg
+                  aria-hidden
+                  className="h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 19s-4.5-2.7-6.7-5C3.2 11.8 3 9.2 4.5 7.6 5.9 6 8.3 6.2 9.7 7.6L12 9.9l2.3-2.3c1.4-1.4 3.8-1.6 5.2 0 1.5 1.6 1.3 4.2-.8 6.4-2.2 2.3-6.7 5-6.7 5z" />
+                </svg>
+                <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-semibold text-white">
+                  0
+                </span>
+              </button>
+              <NavCartIndicator />
+              <UserNav />
+            </div>
+          </div>
+        </header>
+        <main>{children}</main>
+        <SiteFooter />
       </body>
     </html>
   );
