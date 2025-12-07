@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AddToCartButton } from "@/components/add-to-cart-button";
+import { WishlistToggleButton } from "@/components/wishlist-toggle-button";
 
 interface Product {
   id: string;
@@ -11,6 +12,7 @@ interface Product {
   slug: string;
   image_url?: string | null;
   brand?: string | null;
+  stock?: number | null;
 }
 
 interface Props {
@@ -239,40 +241,53 @@ export function ProductsListingClient({ products }: Props) {
                 viewType === "grid" ? "flex-col" : "flex-row gap-4"
               }`}
             >
-              <a
-                href={`/products/${product.slug}`}
-                className={
-                  viewType === "grid"
-                    ? "mb-3 flex flex-1 flex-col"
-                    : "flex flex-1 items-center gap-4"
-                }
-              >
-                <div className="mb-3 flex h-32 w-full items-center justify-center overflow-hidden rounded-md border border-neutral-800 bg-neutral-900">
-                  {product.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-[11px] text-neutral-500">Fără imagine</span>
-                  )}
+              <div className={viewType === "grid" ? "mb-3 flex flex-1 flex-col" : "flex flex-1 items-start gap-3"}>
+                <a
+                  href={`/products/${product.slug}`}
+                  className={
+                    viewType === "grid"
+                      ? "flex flex-1 flex-col"
+                      : "flex flex-1 items-center gap-4"
+                  }
+                >
+                  <div className="mb-3 flex w-full items-center justify-center overflow-hidden">
+                    {product.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="w-full h-auto object-contain"
+                      />
+                    ) : (
+                      <span className="text-[11px] text-neutral-500">Fără imagine</span>
+                    )}
+                  </div>
+                  <div>
+                    <h2 className="mb-1 text-sm font-medium text-white line-clamp-2">
+                      {product.name}
+                    </h2>
+                    {product.short_description && (
+                      <p className="text-[11px] text-neutral-400 line-clamp-2">
+                        {product.short_description}
+                      </p>
+                    )}
+                    {product.brand && (
+                      <p className="mt-1 text-[11px] text-neutral-500">
+                        Producător: {product.brand}
+                      </p>
+                    )}
+                  </div>
+                </a>
+                <div className="mt-1 flex justify-end">
+                  <WishlistToggleButton
+                    productId={product.id}
+                    name={product.name}
+                    price={product.price}
+                    imageUrl={product.image_url ?? null}
+                    slug={product.slug}
+                  />
                 </div>
-                <div>
-                  <h2 className="mb-1 text-sm font-medium text-white line-clamp-2">
-                    {product.name}
-                  </h2>
-                  {product.short_description && (
-                    <p className="text-[11px] text-neutral-400 line-clamp-2">
-                      {product.short_description}
-                    </p>
-                  )}
-                  {product.brand && (
-                    <p className="mt-1 text-[11px] text-neutral-500">Producător: {product.brand}</p>
-                  )}
-                </div>
-              </a>
+              </div>
               <div
                 className={
                   viewType === "grid"
@@ -284,13 +299,21 @@ export function ProductsListingClient({ products }: Props) {
                   {new Intl.NumberFormat("ro-RO", {
                     style: "currency",
                     currency: "RON",
-                  }).format(product.price / 100)}
+                  }).format(product.price)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-neutral-400">
+                  {typeof product.stock === "number" && product.stock > 0
+                    ? `În stoc (${product.stock} buc.)`
+                    : "Stoc epuizat"}
                 </p>
                 <AddToCartButton
                   productId={product.id}
                   name={product.name}
                   price={product.price}
                   imageUrl={product.image_url ?? null}
+                  disabled={
+                    !(typeof product.stock === "number" && product.stock > 0)
+                  }
                 />
               </div>
             </div>

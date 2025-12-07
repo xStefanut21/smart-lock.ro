@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { NavCartIndicator } from "@/components/nav-cart-indicator";
+import { NavWishlistIndicator } from "@/components/nav-wishlist-indicator";
 import { UserNav } from "@/components/user-nav";
 
 export function SiteHeader() {
@@ -39,28 +40,8 @@ export function SiteHeader() {
 
         {/* Icon-uri + burger */}
         <div className="flex items-center gap-3 text-neutral-200 md:gap-5">
-          {/* placeholder pentru wishlist */}
-          <button
-            type="button"
-            className="relative hidden h-8 w-8 items-center justify-center hover:text-white sm:flex"
-            aria-label="Favorite (în curând)"
-          >
-            <svg
-              aria-hidden
-              className="h-5 w-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 19s-4.5-2.7-6.7-5C3.2 11.8 3 9.2 4.5 7.6 5.9 6 8.3 6.2 9.7 7.6L12 9.9l2.3-2.3c1.4-1.4 3.8-1.6 5.2 0 1.5 1.6 1.3 4.2-.8 6.4-2.2 2.3-6.7 5-6.7 5z" />
-            </svg>
-            <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-semibold text-white">
-              0
-            </span>
-          </button>
+          {/* wishlist */}
+          <NavWishlistIndicator />
           <NavCartIndicator />
           <UserNav />
 

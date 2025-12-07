@@ -7,9 +7,16 @@ interface AddToCartButtonProps {
   name: string;
   price: number; // in bani
   imageUrl?: string | null;
+  disabled?: boolean;
 }
 
-export function AddToCartButton({ productId, name, price, imageUrl }: AddToCartButtonProps) {
+export function AddToCartButton({
+  productId,
+  name,
+  price,
+  imageUrl,
+  disabled,
+}: AddToCartButtonProps) {
   const router = useRouter();
 
   function handleAdd() {
@@ -25,6 +32,18 @@ export function AddToCartButton({ productId, name, price, imageUrl }: AddToCartB
 
     localStorage.setItem("cart", JSON.stringify(cart));
     router.push("/cart");
+  }
+
+  if (disabled) {
+    return (
+      <button
+        type="button"
+        disabled
+        className="mt-3 w-full rounded-md bg-neutral-800 py-1.5 text-sm font-medium text-neutral-400 cursor-not-allowed"
+      >
+        Stoc epuizat
+      </button>
+    );
   }
 
   return (

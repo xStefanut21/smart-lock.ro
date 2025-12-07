@@ -19,6 +19,7 @@ export default function AddressesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [label, setLabel] = useState("");
   const [line1, setLine1] = useState("");
   const [city, setCity] = useState("");
@@ -52,7 +53,7 @@ export default function AddressesPage() {
     load();
   }, [router]);
 
-  async function handleAdd(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError(null);
@@ -67,32 +68,81 @@ export default function AddressesPage() {
       return;
     }
 
-    const { data, error: insertError } = await supabase
-      .from("addresses")
-      .insert({
-        user_id: user.id,
-        label: label || null,
-        line1,
-        city,
-        county: county || null,
-        postal_code: postalCode || null,
-      })
-      .select("id, label, line1, city, county, postal_code, is_default")
-      .single();
+    if (editingId) {
+      const { data, error: updateError } = await supabase
+        .from("addresses")
+        .update({
+          label: label || null,
+          line1,
+          city,
+          county: county || null,
+          postal_code: postalCode || null,
+        })
+        .eq("id", editingId)
+        .eq("user_id", user.id)
+        .select("id, label, line1, city, county, postal_code, is_default")
+        .single();
 
-    setSaving(false);
+      setSaving(false);
 
-    if (insertError || !data) {
-      setError("Nu am putut salva adresa. Încearcă din nou.");
-      return;
+      if (updateError || !data) {
+        setError("Nu am putut actualiza adresa. Încearcă din nou.");
+        return;
+      }
+
+      setAddresses((prev) =>
+        prev.map((addr) => (addr.id === editingId ? (data as Address) : addr))
+      );
+      setEditingId(null);
+    } else {
+      const { data, error: insertError } = await supabase
+        .from("addresses")
+        .insert({
+          user_id: user.id,
+          label: label || null,
+          line1,
+          city,
+          county: county || null,
+          postal_code: postalCode || null,
+        })
+        .select("id, label, line1, city, county, postal_code, is_default")
+        .single();
+
+      setSaving(false);
+
+      if (insertError || !data) {
+        setError("Nu am putut salva adresa. Încearcă din nou.");
+        return;
+      }
+
+      setAddresses((prev) => [data as Address, ...prev]);
     }
 
-    setAddresses((prev) => [data as Address, ...prev]);
     setLabel("");
     setLine1("");
     setCity("");
     setCounty("");
     setPostalCode("");
+  }
+
+  function startEdit(address: Address) {
+    setEditingId(address.id);
+    setLabel(address.label ?? "");
+    setLine1(address.line1);
+    setCity(address.city);
+    setCounty(address.county ?? "");
+    setPostalCode(address.postal_code ?? "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function resetForm() {
+    setEditingId(null);
+    setLabel("");
+    setLine1("");
+    setCity("");
+    setCounty("");
+    setPostalCode("");
+    setError(null);
   }
 
   async function handleDelete(id: string) {
@@ -172,13 +222,33 @@ export default function AddressesPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 text-sm text-neutral-200">
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="mb-3 text-xs text-neutral-400 hover:text-white"
+      >
+        ← Înapoi
+      </button>
       <h1 className="mb-4 text-3xl font-semibold text-white">Adresele mele</h1>
 
       <form
-        onSubmit={handleAdd}
+        onSubmit={handleSubmit}
         className="mb-6 space-y-3 rounded-xl border border-neutral-800 bg-neutral-950/80 p-6 text-xs"
       >
-        <h2 className="text-sm font-medium text-white">Adaugă o adresă nouă</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-medium text-white">
+            {editingId ? "Editează adresa" : "Adaugă o adresă nouă"}
+          </h2>
+          {editingId && (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded-md border border-neutral-700 px-3 py-1 text-[11px] text-neutral-300 hover:border-blue-500 hover:text-white"
+            >
+              Adresă nouă
+            </button>
+          )}
+        </div>
         {error && (
           <p className="rounded-md border border-red-700 bg-red-950/40 px-3 py-2 text-red-300">
             {error}
@@ -255,7 +325,13 @@ export default function AddressesPage() {
           disabled={saving}
           className="mt-2 rounded-md bg-blue-600 px-6 py-2 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-60"
         >
-          {saving ? "Se adaugă..." : "Salvează adresa"}
+          {saving
+            ? editingId
+              ? "Se salvează modificările..."
+              : "Se adaugă..."
+            : editingId
+            ? "Salvează modificările"
+            : "Salvează adresa"}
         </button>
       </form>
 
@@ -288,6 +364,13 @@ export default function AddressesPage() {
                   {addr.postal_code && <p>Cod poștal: {addr.postal_code}</p>}
                 </div>
                 <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => startEdit(addr)}
+                    className="rounded-md border border-neutral-700 px-3 py-1 text-[11px] text-neutral-200 hover:bg-neutral-700/40"
+                  >
+                    Editează
+                  </button>
                   {!addr.is_default && (
                     <button
                       type="button"

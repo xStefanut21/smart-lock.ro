@@ -1,4 +1,29 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
 export default function Home() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+
+    supabase.auth.getUser().then(({ data }) => {
+      setIsLoggedIn(!!data.user);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_, session) => {
+      setIsLoggedIn(!!session?.user);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   return (
     <div className="mx-auto flex min-h-[calc(100vh-56px)] max-w-6xl flex-col justify-center gap-12 px-4 py-10 md:flex-row md:items-center">
       <section className="max-w-xl space-y-5">
@@ -20,12 +45,14 @@ export default function Home() {
           >
             Vezi catalogul de yale smart
           </a>
-          <a
-            href="/login"
-            className="rounded-full border border-neutral-700 px-5 py-2 text-neutral-200 hover:border-blue-500"
-          >
-            Intră în contul tău
-          </a>
+          {!isLoggedIn && (
+            <a
+              href="/login"
+              className="rounded-full border border-neutral-700 px-5 py-2 text-neutral-200 hover:border-blue-500"
+            >
+              Intră în contul tău
+            </a>
+          )}
         </div>
         <dl className="mt-4 grid grid-cols-2 gap-4 text-xs text-neutral-300 md:text-sm">
           <div>

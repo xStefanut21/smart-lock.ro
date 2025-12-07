@@ -32,7 +32,7 @@ export function NavCartIndicator() {
     <button
       type="button"
       onClick={() => router.push("/cart")}
-      className="relative flex h-8 w-8 items-center justify-center text-neutral-200 hover:text-white"
+      className="relative flex h-8 w-8 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-neutral-200 hover:border-white hover:text-white"
       aria-label="Coș de cumpărături"
     >
       {/* icon coș */}
