@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { AddToCartButton } from "@/components/add-to-cart-button";
 
 interface WishlistItem {
   id: string;
@@ -14,20 +16,42 @@ interface WishlistItem {
 export default function WishlistPage() {
   const router = useRouter();
   const [items, setItems] = useState<WishlistItem[] | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem("wishlist") : null;
-      if (!raw) {
-        setItems([]);
-      } else {
-        const parsed = JSON.parse(raw);
-        setItems(Array.isArray(parsed) ? parsed : []);
+    async function load() {
+      const supabase = createSupabaseBrowserClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.replace("/login");
+        return;
       }
-    } catch {
-      setItems([]);
+
+      try {
+        const raw = typeof window !== "undefined" ? localStorage.getItem("wishlist") : null;
+        if (!raw) {
+          setItems([]);
+        } else {
+          const parsed = JSON.parse(raw);
+          setItems(Array.isArray(parsed) ? parsed : []);
+        }
+      } catch {
+        setItems([]);
+      }
+
+      setAuthChecked(true);
     }
-  }, []);
+
+    load();
+  }, [router]);
+
+  if (!authChecked) {
+    // nu afișăm nimic până nu știm dacă utilizatorul este autentificat
+    return null;
+  }
 
   const isEmpty = !items || items.length === 0;
 
@@ -52,57 +76,76 @@ export default function WishlistPage() {
           </button>
         </>
       ) : (
-        <ul className="mt-4 space-y-3 text-xs">
+        <ul className="mt-4 space-y-4 text-xs">
           {items!.map((item) => (
             <li
               key={item.id}
-              className="flex items-center justify-between gap-3 rounded-lg border border-neutral-800 bg-neutral-950 p-3"
+              className="flex flex-col gap-4 rounded-xl border border-neutral-800 bg-neutral-950/90 p-4 shadow-sm md:flex-row md:items-center"
             >
-              <a
-                href={`/products/${item.slug}`}
-                className="flex flex-1 items-center gap-3 hover:text-white"
-              >
-                <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-md border border-neutral-800 bg-neutral-900">
-                  {item.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={item.image_url}
-                      alt={item.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-[10px] text-neutral-500">Fără imagine</span>
-                  )}
-                </div>
-                <div>
-                  <p className="text-sm text-neutral-100">{item.name}</p>
-                  <p className="text-[11px] text-neutral-400">
+              <div className="flex flex-1 flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <a
+                  href={`/products/${item.slug}`}
+                  className="flex flex-1 items-center gap-4 hover:text-white"
+                >
+                  <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-md border border-neutral-800 bg-neutral-900">
+                    {item.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={item.image_url}
+                        alt={item.name}
+                        className="h-full w-full object-contain"
+                      />
+                    ) : (
+                      <span className="text-[10px] text-neutral-500">Fără imagine</span>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-neutral-100">{item.name}</p>
+                    <p className="inline-flex items-center rounded-sm bg-emerald-700/30 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
+                      În stoc
+                    </p>
+                    <div className="max-w-xs">
+                      <AddToCartButton
+                        productId={item.id}
+                        name={item.name}
+                        price={item.price}
+                        imageUrl={item.image_url ?? null}
+                        disabled={false}
+                      />
+                    </div>
+                  </div>
+                </a>
+                <div className="mt-2 flex items-center justify-between gap-4 md:mt-0 md:flex-col md:items-end md:justify-center">
+                  <p className="text-sm font-semibold text-blue-400">
                     {new Intl.NumberFormat("ro-RO", {
                       style: "currency",
                       currency: "RON",
                     }).format(item.price)}
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const raw = localStorage.getItem("wishlist");
+                      const current = raw ? (JSON.parse(raw) as WishlistItem[]) : [];
+                      const next = current.filter((i) => i.id !== item.id);
+                      localStorage.setItem("wishlist", JSON.stringify(next));
+                      setItems(next);
+                      window.dispatchEvent(
+                        new StorageEvent("storage", {
+                          key: "wishlist",
+                          newValue: JSON.stringify(next),
+                        })
+                      );
+                    }}
+                    className="flex items-center gap-1 text-[11px] text-neutral-300 hover:text-red-300"
+                  >
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black text-[11px] text-neutral-100">
+                      ×
+                    </span>
+                    <span>șterge articol</span>
+                  </button>
                 </div>
-              </a>
-              <button
-                type="button"
-                onClick={() => {
-                  const raw = localStorage.getItem("wishlist");
-                  const current = raw ? (JSON.parse(raw) as WishlistItem[]) : [];
-                  const next = current.filter((i) => i.id !== item.id);
-                  localStorage.setItem("wishlist", JSON.stringify(next));
-                  setItems(next);
-                  window.dispatchEvent(
-                    new StorageEvent("storage", {
-                      key: "wishlist",
-                      newValue: JSON.stringify(next),
-                    })
-                  );
-                }}
-                className="text-[11px] text-red-400 hover:text-red-300"
-              >
-                Șterge
-              </button>
+              </div>
             </li>
           ))}
         </ul>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 interface WishlistToggleButtonProps {
   productId: string;
@@ -46,6 +48,7 @@ export function WishlistToggleButton({
   imageUrl,
   slug,
 }: WishlistToggleButtonProps) {
+  const router = useRouter();
   const [active, setActive] = useState(false);
 
   useEffect(() => {
@@ -62,7 +65,17 @@ export function WishlistToggleButton({
     return () => window.removeEventListener("storage", handleStorage);
   }, [productId]);
 
-  function toggle() {
+  async function toggle() {
+    const supabase = createSupabaseBrowserClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
     const items = readWishlist();
     const exists = items.find((i) => i.id === productId);
     let next: WishlistItem[];

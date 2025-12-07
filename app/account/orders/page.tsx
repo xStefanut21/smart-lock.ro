@@ -88,7 +88,7 @@ export default function OrdersPage() {
                     {new Intl.NumberFormat("ro-RO", {
                       style: "currency",
                       currency: "RON",
-                    }).format(order.total_amount / 100)}
+                    }).format(order.total_amount)}
                   </td>
                 </tr>
               ))}

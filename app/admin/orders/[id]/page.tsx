@@ -254,14 +254,13 @@ export default function AdminOrderDetailPage() {
                       {new Intl.NumberFormat("ro-RO", {
                         style: "currency",
                         currency: "RON",
-                      }).format((item.unit_price * item.quantity) / 100)}
+                      }).format(item.unit_price * item.quantity)}
                     </p>
                     <p className="text-[11px] text-neutral-500">
                       ({new Intl.NumberFormat("ro-RO", {
                         style: "currency",
                         currency: "RON",
-                      }).format(item.unit_price / 100)}{" "}
-                      / buc)
+                      }).format(item.unit_price)} / buc)
                     </p>
                   </div>
                 </li>
@@ -279,9 +278,7 @@ export default function AdminOrderDetailPage() {
                 {new Intl.NumberFormat("ro-RO", {
                   style: "currency",
                   currency: "RON",
-                }).format(
-                  (order.total_amount - (order.shipping_cost || 0)) / 100
-                )}
+                }).format(order.total_amount - (order.shipping_cost || 0))}
               </span>
             </div>
             <div className="flex justify-between">
@@ -290,7 +287,7 @@ export default function AdminOrderDetailPage() {
                 {new Intl.NumberFormat("ro-RO", {
                   style: "currency",
                   currency: "RON",
-                }).format((order.vat_amount || 0) / 100)}
+                }).format(order.vat_amount || 0)}
               </span>
             </div>
             <div className="flex justify-between">
@@ -299,7 +296,7 @@ export default function AdminOrderDetailPage() {
                 {new Intl.NumberFormat("ro-RO", {
                   style: "currency",
                   currency: "RON",
-                }).format((order.shipping_cost || 0) / 100)}
+                }).format(order.shipping_cost || 0)}
               </span>
             </div>
             <div className="mt-2 flex justify-between border-t border-neutral-800 pt-2 text-sm font-semibold">
@@ -308,7 +305,7 @@ export default function AdminOrderDetailPage() {
                 {new Intl.NumberFormat("ro-RO", {
                   style: "currency",
                   currency: "RON",
-                }).format(order.total_amount / 100)}
+                }).format(order.total_amount)}
               </span>
             </div>
           </div>

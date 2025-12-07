@@ -158,18 +158,6 @@ export function UserNav() {
                     Adresele mele
                   </button>
                 </li>
-                <li>
-                  <button
-                    type="button"
-                    className="w-full text-left hover:text-white"
-                    onClick={() => {
-                      setOpen(false);
-                      router.push("/account");
-                    }}
-                  >
-                    Newsletter
-                  </button>
-                </li>
                 <li className="mt-1 border-t border-neutral-800 pt-1">
                   <button
                     type="button"

@@ -22,6 +22,7 @@ export default function CartPage() {
     }
   }, []);
 
+  // prețurile din cart sunt în RON (aceeași valoare ca pe cardul de produs)
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   function syncAndSetItems(next: CartItem[]) {
@@ -83,8 +84,7 @@ export default function CartPage() {
                       {new Intl.NumberFormat("ro-RO", {
                         style: "currency",
                         currency: "RON",
-                      }).format(item.price / 100)}{" "}
-                      / buc
+                      }).format(item.price)} / buc
                     </p>
                   </div>
                 </div>
@@ -115,7 +115,7 @@ export default function CartPage() {
                       {new Intl.NumberFormat("ro-RO", {
                         style: "currency",
                         currency: "RON",
-                      }).format((item.price * item.quantity) / 100)}
+                      }).format(item.price * item.quantity)}
                     </p>
                   </div>
 
@@ -137,7 +137,7 @@ export default function CartPage() {
               {new Intl.NumberFormat("ro-RO", {
                 style: "currency",
                 currency: "RON",
-              }).format(total / 100)}
+              }).format(total)}
             </span>
           </div>
           <button

@@ -114,9 +114,10 @@ export default function CheckoutPage() {
     syncCart(items.filter((item) => item.id !== id));
   }
 
+  // prețurile din cart sunt în RON; total, TVA și transportul sunt exprimate direct în RON
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shippingCost = 2000; // 20 RON
-  const vatAmount = Math.round(total * 0.19);
+  const shippingCost = 20; // 20 RON
+  const vatAmount = total * 0.19;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -243,7 +244,31 @@ export default function CheckoutPage() {
     }
 
     if (addressesToInsert.length > 0) {
-      await supabase.from("addresses").insert(addressesToInsert);
+      // evităm să inserăm adrese care există deja pentru utilizator (după linie, oraș, județ, cod poștal)
+      const { data: existingAddresses } = await supabase
+        .from("addresses")
+        .select("line1, city, county, postal_code")
+        .eq("user_id", user.id);
+
+      const filteredToInsert = addressesToInsert.filter((addr) => {
+        const countyVal = addr.county || null;
+        const postalVal = addr.postal_code || null;
+
+        return !existingAddresses?.some((ex: any) => {
+          const exCounty = ex.county || null;
+          const exPostal = ex.postal_code || null;
+          return (
+            ex.line1 === addr.line1 &&
+            ex.city === addr.city &&
+            exCounty === countyVal &&
+            exPostal === postalVal
+          );
+        });
+      });
+
+      if (filteredToInsert.length > 0) {
+        await supabase.from("addresses").insert(filteredToInsert);
+      }
     }
 
     localStorage.removeItem("cart");
@@ -447,8 +472,7 @@ export default function CheckoutPage() {
                           {new Intl.NumberFormat("ro-RO", {
                             style: "currency",
                             currency: "RON",
-                          }).format(item.price / 100)}{" "}
-                          / buc
+                          }).format(item.price)} / buc
                         </p>
                       </div>
                     </div>
@@ -478,7 +502,7 @@ export default function CheckoutPage() {
                           {new Intl.NumberFormat("ro-RO", {
                             style: "currency",
                             currency: "RON",
-                          }).format((item.price * item.quantity) / 100)}
+                          }).format(item.price * item.quantity)}
                         </p>
                       </div>
                       <button
@@ -515,7 +539,7 @@ export default function CheckoutPage() {
                   {new Intl.NumberFormat("ro-RO", {
                     style: "currency",
                     currency: "RON",
-                  }).format(shippingCost / 100)}
+                  }).format(shippingCost)}
                 </span>
               </label>
             </section>
@@ -534,12 +558,8 @@ export default function CheckoutPage() {
                   className="mt-0.5 h-3.5 w-3.5 rounded-full border-neutral-700 bg-neutral-950 text-blue-600"
                 />
                 <span>
-                  Plata la livrare (ramburs) – achiți comanda la curier.
+                  Plata la livrare (ramburs) – achiți comanda direct la curier.
                 </span>
-              </label>
-              <label className="flex items-start gap-2 text-neutral-500">
-                <input type="radio" disabled className="mt-0.5 h-3.5 w-3.5" />
-                <span>Plata online cu cardul (în curând).</span>
               </label>
             </section>
 
@@ -553,7 +573,7 @@ export default function CheckoutPage() {
                     {new Intl.NumberFormat("ro-RO", {
                       style: "currency",
                       currency: "RON",
-                    }).format(total / 100)}
+                    }).format(total)}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -562,7 +582,7 @@ export default function CheckoutPage() {
                     {new Intl.NumberFormat("ro-RO", {
                       style: "currency",
                       currency: "RON",
-                    }).format(vatAmount / 100)}
+                    }).format(vatAmount)}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -571,7 +591,7 @@ export default function CheckoutPage() {
                     {new Intl.NumberFormat("ro-RO", {
                       style: "currency",
                       currency: "RON",
-                    }).format(shippingCost / 100)}
+                    }).format(shippingCost)}
                   </span>
                 </div>
                 <div className="mt-2 flex justify-between border-t border-neutral-800 pt-2 text-base font-semibold">
@@ -580,7 +600,7 @@ export default function CheckoutPage() {
                     {new Intl.NumberFormat("ro-RO", {
                       style: "currency",
                       currency: "RON",
-                    }).format((total + shippingCost) / 100)}
+                    }).format(total + shippingCost)}
                   </span>
                 </div>
               </div>

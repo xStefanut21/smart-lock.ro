@@ -100,10 +100,10 @@ export function ProductsListingClient({ products }: Props) {
                   <div className="flex items-center gap-1">
                     <input
                       type="number"
-                      value={Math.round(minPrice / 100)}
-                      min={Math.round(globalMin / 100)}
-                      max={Math.round(globalMax / 100)}
-                      onChange={(e) => handleMinChange(Number(e.target.value) * 100)}
+                      value={minPrice}
+                      min={globalMin}
+                      max={globalMax}
+                      onChange={(e) => handleMinChange(Number(e.target.value) || 0)}
                       className="h-7 w-20 rounded border border-neutral-700 bg-neutral-900 px-2 text-right text-[11px] text-neutral-100 outline-none focus:border-blue-500"
                     />
                     <span className="text-neutral-500">Lei</span>
@@ -114,10 +114,10 @@ export function ProductsListingClient({ products }: Props) {
                   <div className="flex items-center gap-1">
                     <input
                       type="number"
-                      value={Math.round(maxPrice / 100)}
-                      min={Math.round(globalMin / 100)}
-                      max={Math.round(globalMax / 100)}
-                      onChange={(e) => handleMaxChange(Number(e.target.value) * 100)}
+                      value={maxPrice}
+                      min={globalMin}
+                      max={globalMax}
+                      onChange={(e) => handleMaxChange(Number(e.target.value) || 0)}
                       className="h-7 w-20 rounded border border-neutral-700 bg-neutral-900 px-2 text-right text-[11px] text-neutral-100 outline-none focus:border-blue-500"
                     />
                     <span className="text-neutral-500">Lei</span>

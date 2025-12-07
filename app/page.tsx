@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { HomeBannerSlider } from "@/components/home-banner-slider";
 
 export default function Home() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -25,7 +26,9 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-56px)] max-w-6xl flex-col justify-center gap-12 px-4 py-10 md:flex-row md:items-center">
+    <div className="mx-auto max-w-6xl px-4 py-6">
+      <HomeBannerSlider />
+      <div className="mt-8 flex min-h-[calc(100vh-56px-120px)] flex-col justify-center gap-12 md:flex-row md:items-center">
       <section className="max-w-xl space-y-5">
         <p className="text-xs font-semibold uppercase tracking-[0.25em] text-blue-400">
           Yale smart pentru locuințe moderne
@@ -45,7 +48,7 @@ export default function Home() {
           >
             Vezi catalogul de yale smart
           </a>
-          {!isLoggedIn && (
+          {isLoggedIn === false && (
             <a
               href="/login"
               className="rounded-full border border-neutral-700 px-5 py-2 text-neutral-200 hover:border-blue-500"
@@ -64,8 +67,8 @@ export default function Home() {
             <dd>Compatibilitate cu majoritatea cilindrilor și ușilor de apartament.</dd>
           </div>
           <div>
-            <dt className="font-medium text-white">Plăți securizate</dt>
-            <dd>Integrare cu procesatori de plăți certificați (în curs de activare).</dd>
+            <dt className="font-medium text-white">Plată la livrare</dt>
+            <dd>Toate comenzile se achită simplu, ramburs, direct la curier.</dd>
           </div>
           <div>
             <dt className="font-medium text-white">Suport local</dt>
@@ -94,12 +97,13 @@ export default function Home() {
         </ul>
         <div className="mt-4 rounded-lg border border-neutral-800 bg-black/40 p-3 text-xs text-neutral-400">
           <p>
-            Lucrăm în prezent la integrarea plăților online și a generării automate
-            de AWB. Poți deja să testezi fluxul de comandă și să vizualizezi
-            catalogul de produse.
+            Comenzile se achită momentan exclusiv ramburs la livrare, iar fluxul de
+            comandă este complet funcțional. Poți explora catalogul, adăuga produse
+            în coș și plasa comanda direct din site.
           </p>
         </div>
       </section>
+      </div>
     </div>
   );
 }

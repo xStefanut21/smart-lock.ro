@@ -98,12 +98,6 @@ export default function AccountPage() {
               📦 Vezi istoricul comenzilor
             </button>
           </li>
-          <li className="hover:text-white">
-            ✉️ Abonare / Dezabonare newsletter (în curând)
-          </li>
-          <li className="hover:text-white">
-            ⚙️ Unelte GDPR (în curând)
-          </li>
         </ul>
       </div>
     </div>

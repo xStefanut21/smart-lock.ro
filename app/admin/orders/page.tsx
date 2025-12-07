@@ -152,7 +152,7 @@ export default function AdminOrdersPage() {
                       {new Intl.NumberFormat("ro-RO", {
                         style: "currency",
                         currency: "RON",
-                      }).format(order.total_amount / 100)}
+                      }).format(order.total_amount)}
                     </td>
                     <td className="px-3 py-2 text-right align-middle text-neutral-100">
                       <button

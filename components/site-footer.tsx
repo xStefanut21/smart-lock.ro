@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { HomeRecommendedProductsSlider } from "@/components/home-recommended-products-slider";
 
 export function SiteFooter() {
   const pathname = usePathname();
@@ -11,7 +12,8 @@ export function SiteFooter() {
       {isHome && (
         <section className="border-b border-neutral-900 bg-neutral-950/70">
           <div className="mx-auto max-w-6xl px-4 py-8 text-sm">
-            <h2 className="mb-2 text-base font-semibold uppercase tracking-wide text-white">
+            <HomeRecommendedProductsSlider />
+            <h2 className="mb-2 mt-4 text-base font-semibold uppercase tracking-wide text-white">
               Oferim consultanță și montaj pentru toate produsele comercializate
             </h2>
             <p className="mb-1 text-neutral-300">
@@ -54,8 +56,8 @@ export function SiteFooter() {
               <div className="flex items-start gap-2">
                 <span className="text-lg">💳</span>
                 <div>
-                  <p className="font-semibold text-white">Plată rapidă</p>
-                  <p>Integrare cu procesatori de plăți securizați (în lucru).</p>
+                  <p className="font-semibold text-white">Plată la livrare</p>
+                  <p>Toate comenzile se achită simplu, ramburs, direct la curier.</p>
                 </div>
               </div>
             </div>
@@ -67,7 +69,7 @@ export function SiteFooter() {
       <section className="border-b border-neutral-900 bg-neutral-950/70">
         <div className="mx-auto max-w-6xl px-4 pt-6 pb-4 text-xs text-neutral-400">
           <div className="flex flex-col items-start justify-between gap-4 border-t border-neutral-900 pt-4 md:flex-row md:items-center">
-            <p>Ne găsești și pe social media (în curând): Instagram, Facebook, YouTube.</p>
+            <p>Ne găsești și pe social media: Instagram, Facebook, YouTube.</p>
             <div className="flex w-full max-w-md gap-2">
               <input
                 type="email"
@@ -110,7 +112,11 @@ export function SiteFooter() {
               <ul className="space-y-1 text-neutral-300">
                 <li>Politica de retur</li>
                 <li>Detalii livrare</li>
-                <li>Confidențialitate</li>
+                <li>
+                  <a href="/confidentialitate" className="hover:text-white">
+                    Confidențialitate
+                  </a>
+                </li>
                 <li>Termeni și condiții</li>
               </ul>
             </div>
@@ -119,10 +125,21 @@ export function SiteFooter() {
                 Contul meu
               </p>
               <ul className="space-y-1 text-neutral-300">
-                <li>Contul meu</li>
-                <li>Istoric comenzi</li>
-                <li>Wish list</li>
-                <li>Newsletter</li>
+                <li>
+                  <a href="/account" className="hover:text-white">
+                    Contul meu
+                  </a>
+                </li>
+                <li>
+                  <a href="/account/orders" className="hover:text-white">
+                    Istoric comenzi
+                  </a>
+                </li>
+                <li>
+                  <a href="/account/wishlist" className="hover:text-white">
+                    Wish list
+                  </a>
+                </li>
               </ul>
             </div>
             <div>

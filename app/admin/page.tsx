@@ -86,6 +86,19 @@ export default function AdminDashboardPage() {
             Vezi toate comenzile, verifică adresele și urmărește statusul livrării.
           </span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => router.push("/admin/banners")}
+          className="flex flex-col items-start rounded-lg border border-neutral-800 bg-neutral-950/80 p-4 text-left text-xs hover:border-red-600 hover:bg-neutral-900"
+        >
+          <span className="mb-1 text-sm font-semibold text-white">
+            🖼️ Bannere homepage
+          </span>
+          <span className="text-neutral-400">
+            Gestionează imaginile afișate în sliderul de pe pagina principală.
+          </span>
+        </button>
       </div>
     </div>
   );
