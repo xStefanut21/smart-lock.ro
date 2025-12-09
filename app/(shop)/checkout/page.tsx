@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -10,6 +11,7 @@ interface CartItem {
   price: number;
   quantity: number;
   image?: string | null;
+  color?: string;
 }
 
 export default function CheckoutPage() {
@@ -165,6 +167,7 @@ export default function CheckoutPage() {
         shipping_method: shippingMethod,
         payment_provider: paymentMethod,
         payment_reference: null,
+        comment: comment || null,
       })
       .select("id")
       .single();
@@ -180,6 +183,7 @@ export default function CheckoutPage() {
       product_id: item.id,
       quantity: item.quantity,
       unit_price: item.price,
+      color: item.color ?? null,
     }));
 
     const { error: itemsError } = await supabase
@@ -273,7 +277,7 @@ export default function CheckoutPage() {
 
     localStorage.removeItem("cart");
     setLoading(false);
-    router.push("/products");
+    router.push(`/order-confirmation/${order.id}`);
   }
 
   return (
@@ -468,6 +472,9 @@ export default function CheckoutPage() {
                       </div>
                       <div>
                         <p className="text-[13px] text-neutral-100">{item.name}</p>
+                        {item.color && (
+                          <p className="text-[11px] text-neutral-400">Culoare: {item.color}</p>
+                        )}
                         <p className="text-[11px] text-neutral-400">
                           {new Intl.NumberFormat("ro-RO", {
                             style: "currency",
@@ -622,7 +629,13 @@ export default function CheckoutPage() {
                     className="mt-0.5 h-3.5 w-3.5 rounded border-neutral-700 bg-neutral-950 text-blue-600"
                   />
                   <span>
-                    Confirm că am citit și sunt de acord cu termenii și condițiile
+                    Confirm că am citit și sunt de acord cu {" "}
+                    <Link
+                      href="/termeni-si-conditii"
+                      className="text-blue-400 underline-offset-2 hover:text-blue-300 hover:underline"
+                    >
+                      termenii și condițiile
+                    </Link>{" "}
                     magazinului smart-lock.ro.
                   </span>
                 </label>

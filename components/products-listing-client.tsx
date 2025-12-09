@@ -13,6 +13,7 @@ interface Product {
   image_url?: string | null;
   brand?: string | null;
   stock?: number | null;
+  color_options?: string | null;
 }
 
 interface Props {
@@ -234,7 +235,14 @@ export function ProductsListingClient({ products }: Props) {
               : "space-y-3"
           }
         >
-          {pageItems.map((product) => (
+          {pageItems.map((product) => {
+            const hasColorOptions = !!product.color_options &&
+              product.color_options
+                .split(",")
+                .map((c) => c.trim())
+                .filter(Boolean).length > 0;
+
+            return (
             <div
               key={product.id}
               className={`flex rounded-xl border border-neutral-800 bg-neutral-950/80 p-4 shadow-sm transition hover:border-blue-600 hover:shadow-lg ${
@@ -310,18 +318,27 @@ export function ProductsListingClient({ products }: Props) {
                     ? `În stoc (${product.stock} buc.)`
                     : "Stoc epuizat"}
                 </p>
-                <AddToCartButton
-                  productId={product.id}
-                  name={product.name}
-                  price={product.price}
-                  imageUrl={product.image_url ?? null}
-                  disabled={
-                    !(typeof product.stock === "number" && product.stock > 0)
-                  }
-                />
+                {hasColorOptions ? (
+                  <a
+                    href={`/products/${product.slug}`}
+                    className="mt-2 inline-flex w-full items-center justify-center rounded-md border border-blue-500 px-3 py-1.5 text-[13px] font-medium text-blue-400 hover:bg-blue-600/10"
+                  >
+                    Vezi detalii și alege opțiuni
+                  </a>
+                ) : (
+                  <AddToCartButton
+                    productId={product.id}
+                    name={product.name}
+                    price={product.price}
+                    imageUrl={product.image_url ?? null}
+                    disabled={
+                      !(typeof product.stock === "number" && product.stock > 0)
+                    }
+                  />
+                )}
               </div>
             </div>
-          ))}
+          );})}
 
           {pageItems.length === 0 && (
             <p className="text-sm text-neutral-400">

@@ -9,6 +9,7 @@ interface CartItem {
   price: number;
   quantity: number;
   image?: string | null;
+  color?: string;
 }
 
 export default function CartPage() {
@@ -80,6 +81,9 @@ export default function CartPage() {
                   </div>
                   <div>
                     <p className="text-sm text-white">{item.name}</p>
+                    {item.color && (
+                      <p className="text-[11px] text-neutral-400">Culoare: {item.color}</p>
+                    )}
                     <p className="text-xs text-neutral-400">
                       {new Intl.NumberFormat("ro-RO", {
                         style: "currency",

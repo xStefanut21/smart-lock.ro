@@ -71,7 +71,10 @@ export default function OrdersPage() {
               {orders.map((order, index) => (
                 <tr
                   key={order.id}
-                  className={index % 2 === 0 ? "bg-neutral-950" : "bg-neutral-900/70"}
+                  onClick={() => router.push(`/account/orders/${order.id}`)}
+                  className={`${
+                    index % 2 === 0 ? "bg-neutral-950" : "bg-neutral-900/70"
+                  } cursor-pointer hover:bg-neutral-800/80`}
                 >
                   <td className="px-3 py-2 align-middle text-neutral-200">
                     <span className="inline-block max-w-[180px] truncate align-middle">

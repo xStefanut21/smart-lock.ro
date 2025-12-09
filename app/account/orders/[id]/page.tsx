@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-type AdminOrder = {
+interface Order {
   id: string;
   status: string | null;
   total_amount: number;
@@ -17,28 +17,26 @@ type AdminOrder = {
   shipping_address: any | null;
   billing_address: any | null;
   comment?: string | null;
-};
+}
 
-type AdminOrderItem = {
+interface OrderItem {
   id: string;
   product_id: string | null;
   quantity: number;
   unit_price: number;
   product_name: string | null;
   color?: string | null;
-};
+}
 
-export default function AdminOrderDetailPage() {
+export default function AccountOrderDetailPage() {
   const router = useRouter();
   const params = useParams();
   const id = params?.id as string | undefined;
 
-  const [checkingAuth, setCheckingAuth] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [order, setOrder] = useState<AdminOrder | null>(null);
-  const [items, setItems] = useState<AdminOrderItem[]>([]);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [items, setItems] = useState<OrderItem[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [savingStatus, setSavingStatus] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -51,45 +49,31 @@ export default function AdminOrderDetailPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.replace(`/login?redirect=/admin/orders/${id}`);
+        router.push("/login");
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("is_admin")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (!profile || profile.is_admin !== true) {
-        router.replace("/");
-        return;
-      }
-
-      setCheckingAuth(false);
-
+      // încărcăm comanda doar dacă aparține utilizatorului logat
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select(
-          "id, status, total_amount, shipping_cost, vat_amount, created_at, shipping_method, payment_provider, payment_reference, shipping_address, billing_address, comment"
+          "id, status, total_amount, shipping_cost, vat_amount, created_at, shipping_method, payment_provider, payment_reference, shipping_address, billing_address, comment, user_id"
         )
         .eq("id", id)
-        .maybeSingle<AdminOrder>();
+        .maybeSingle<any>();
 
-      if (orderError || !orderData) {
-        setError("Nu am putut încărca detaliile comenzii.");
+      if (orderError || !orderData || orderData.user_id !== user.id) {
+        setError("Comanda nu a fost găsită.");
         setLoading(false);
         return;
       }
 
       const { data: itemsData } = await supabase
         .from("order_items")
-        .select(
-          "id, product_id, quantity, unit_price, color, products(name)"
-        )
+        .select("id, product_id, quantity, unit_price, color, products(name)")
         .eq("order_id", id);
 
-      const mappedItems: AdminOrderItem[] = (itemsData || []).map((row: any) => ({
+      const mappedItems: OrderItem[] = (itemsData || []).map((row: any) => ({
         id: row.id,
         product_id: row.product_id,
         quantity: row.quantity,
@@ -98,7 +82,7 @@ export default function AdminOrderDetailPage() {
         color: row.color ?? null,
       }));
 
-      setOrder(orderData);
+      setOrder(orderData as Order);
       setItems(mappedItems);
       setLoading(false);
     }
@@ -108,24 +92,31 @@ export default function AdminOrderDetailPage() {
 
   if (!id) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-10 text-sm text-neutral-200">
+      <div className="mx-auto max-w-4xl px-4 py-10 text-sm text-neutral-200">
         ID-ul comenzii lipsește.
       </div>
     );
   }
 
-  if (checkingAuth || loading) {
+  if (loading) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-10 text-sm text-neutral-200">
+      <div className="mx-auto max-w-4xl px-4 py-10 text-sm text-neutral-200">
         Se încarcă detaliile comenzii...
       </div>
     );
   }
 
-  if (!order) {
+  if (error || !order) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-10 text-sm text-neutral-200">
-        Comanda nu a fost găsită.
+      <div className="mx-auto max-w-4xl px-4 py-10 text-sm text-neutral-200">
+        <p className="mb-3 text-xs text-red-400">{error || "Comanda nu a fost găsită."}</p>
+        <button
+          type="button"
+          onClick={() => router.push("/account/orders")}
+          className="text-xs text-blue-400 hover:text-blue-300"
+        >
+          ← Înapoi la comenzile mele
+        </button>
       </div>
     );
   }
@@ -133,68 +124,21 @@ export default function AdminOrderDetailPage() {
   const billing = order.billing_address || {};
   const shipping = order.shipping_address || {};
 
-  async function handleStatusChange(nextStatus: string) {
-    if (!id) return;
-
-    setSavingStatus(true);
-    setError(null);
-
-    const supabase = createSupabaseBrowserClient();
-    const { error: updateError } = await supabase
-      .from("orders")
-      .update({ status: nextStatus })
-      .eq("id", id);
-
-    setSavingStatus(false);
-
-    if (updateError) {
-      setError(
-        `Nu am putut actualiza statusul comenzii: ${
-          updateError.message || "eroare necunoscută"
-        }`
-      );
-      return;
-    }
-
-    setOrder((prev) => (prev ? { ...prev, status: nextStatus } : prev));
-  }
-
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 text-sm text-neutral-200">
+    <div className="mx-auto max-w-4xl px-4 py-10 text-sm text-neutral-200">
       <button
         type="button"
         onClick={() => router.back()}
         className="mb-4 text-xs text-neutral-400 hover:text-white"
       >
-        ← Înapoi la lista de comenzi
+        ← Înapoi
       </button>
 
-      <h1 className="mb-2 text-lg font-semibold text-white">
-        Comanda #{order.id}
-      </h1>
-      <div className="mb-4 flex flex-col gap-2 text-xs text-neutral-400 md:flex-row md:items-center md:justify-between">
-        <p>
-          Plasată la {new Date(order.created_at).toLocaleString("ro-RO")} – status curent:
-          <span className="ml-1 font-medium text-neutral-100">
-            {order.status || "nouă"}
-          </span>
-        </p>
-        <div className="flex items-center gap-2 text-[11px]">
-          <span className="text-neutral-400">Schimbă statusul:</span>
-          <select
-            value={order.status || "noua"}
-            onChange={(e) => handleStatusChange(e.target.value)}
-            disabled={savingStatus}
-            className="h-7 rounded border border-neutral-700 bg-neutral-900 px-2 text-xs text-neutral-100 outline-none focus:border-red-500"
-          >
-            <option value="noua">Nouă</option>
-            <option value="in_procesare">În procesare</option>
-            <option value="expediata">Expediată</option>
-            <option value="finalizata">Finalizată</option>
-            <option value="anulata">Anulată</option>
-          </select>
-        </div>
-      </div>
+      <h1 className="mb-2 text-xl font-semibold text-white">Comanda #{order.id}</h1>
+      <p className="mb-4 text-xs text-neutral-400">
+        Plasată la {new Date(order.created_at).toLocaleString("ro-RO")} · status: {" "}
+        <span className="font-medium text-neutral-100">{order.status || "nouă"}</span>
+      </p>
 
       <div className="grid gap-4 md:grid-cols-2">
         <section className="space-y-2 rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-xs">
@@ -234,7 +178,7 @@ export default function AdminOrderDetailPage() {
 
       <section className="mt-4 grid gap-4 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)]">
         <div className="space-y-3 rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-xs text-neutral-200">
-          <h2 className="mb-1 text-sm font-semibold text-white">Produse în comandă</h2>
+          <h2 className="mb-1 text-sm font-semibold text-white">Produse din comandă</h2>
           {items.length === 0 ? (
             <p className="text-xs text-neutral-400">Nu există produse asociate.</p>
           ) : (
@@ -332,7 +276,7 @@ export default function AdminOrderDetailPage() {
 
             {order.comment && (
               <div className="mt-2 rounded border border-neutral-800 bg-neutral-950 p-2 text-[11px] text-neutral-200">
-                <p className="mb-1 font-semibold text-white">Comentariu client</p>
+                <p className="mb-1 font-semibold text-white">Comentariul tău pentru această comandă</p>
                 <p className="whitespace-pre-wrap text-neutral-300">{order.comment}</p>
               </div>
             )}

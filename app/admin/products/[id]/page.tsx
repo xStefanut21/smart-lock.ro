@@ -15,6 +15,7 @@ type AdminProduct = {
   stock: number | null;
   is_active: boolean | null;
   description: string | null;
+  color_options?: string | null;
 };
 
 type ProductImage = {
@@ -43,6 +44,7 @@ export default function AdminEditProductPage() {
   const [stock, setStock] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [description, setDescription] = useState("");
+  const [colorOptions, setColorOptions] = useState("");
   const [extraImages, setExtraImages] = useState<ProductImage[]>([]);
   const [extraImageFiles, setExtraImageFiles] = useState<File[]>([]);
   const [addingImage, setAddingImage] = useState(false);
@@ -89,7 +91,7 @@ export default function AdminEditProductPage() {
       const { data, error } = await supabase
         .from("products")
         .select(
-          "id, name, price, slug, short_description, image_url, brand, stock, is_active, description"
+          "id, name, price, slug, short_description, image_url, brand, stock, is_active, description, color_options"
         )
         .eq("id", id)
         .maybeSingle<AdminProduct>();
@@ -113,6 +115,7 @@ export default function AdminEditProductPage() {
       );
       setIsActive(data.is_active !== false);
       setDescription(data.description ?? "");
+      setColorOptions(data.color_options ?? "");
 
       const { data: imagesData } = await supabase
         .from("product_images")
@@ -368,6 +371,7 @@ export default function AdminEditProductPage() {
         stock: numericStock,
         is_active: isActive,
         description: description.trim() || null,
+        color_options: colorOptions.trim() || null,
       })
       .eq("id", id);
 
@@ -587,6 +591,22 @@ export default function AdminEditProductPage() {
             rows={3}
             className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-red-500"
           />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-neutral-300" htmlFor="colorOptions">
+            Culori disponibile (opțional)
+          </label>
+          <input
+            id="colorOptions"
+            type="text"
+            value={colorOptions}
+            onChange={(e) => setColorOptions(e.target.value)}
+            placeholder="ex: Negru, Gri, Alb"
+            className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-red-500"
+          />
+          <p className="text-[11px] text-neutral-500">
+            Introdu o listă de culori separate prin virgulă. Dacă lași câmpul gol, produsul nu va avea opțiuni de culoare.
+          </p>
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-neutral-300" htmlFor="description">

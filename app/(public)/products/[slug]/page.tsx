@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AddToCartButton } from "@/components/add-to-cart-button";
+import { ProductColorAddToCart } from "@/components/product-color-add-to-cart";
 import { WishlistToggleButton } from "@/components/wishlist-toggle-button";
 import { ProductImageGallery } from "@/components/product-image-gallery";
 import { ProductDescriptionReviewsTabs } from "@/components/product-description-reviews-tabs";
@@ -36,7 +37,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const { data: product } = await supabase
     .from("products")
     .select(
-      "id, name, price, short_description, description, specs, image_url, stock, is_active, slug, product_images(image_url, sort_order)"
+      "id, name, price, short_description, description, specs, image_url, stock, is_active, slug, color_options, product_images(image_url, sort_order)"
     )
     .eq("slug", slug)
     .maybeSingle<any>();
@@ -126,12 +127,27 @@ export default async function ProductPage({ params }: ProductPageProps) {
               </p>
             </div>
             <div className="mt-4 max-w-xs">
-              <AddToCartButton
-                productId={product.id}
-                name={product.name}
-                price={product.price}
-                disabled={!(typeof product.stock === "number" && product.stock > 0)}
-              />
+              {typeof product.color_options === "string" && product.color_options.trim() ? (
+                <ProductColorAddToCart
+                  productId={product.id}
+                  name={product.name}
+                  price={product.price}
+                  imageUrl={product.image_url ?? null}
+                  stockAvailable={typeof product.stock === "number" && product.stock > 0}
+                  colors={product.color_options
+                    .split(",")
+                    .map((c: string) => c.trim())
+                    .filter((c: string) => c.length > 0)}
+                />
+              ) : (
+                <AddToCartButton
+                  productId={product.id}
+                  name={product.name}
+                  price={product.price}
+                  imageUrl={product.image_url ?? null}
+                  disabled={!(typeof product.stock === "number" && product.stock > 0)}
+                />
+              )}
             </div>
           </div>
         </div>

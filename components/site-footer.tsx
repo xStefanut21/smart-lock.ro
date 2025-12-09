@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { HomeRecommendedProductsSlider } from "@/components/home-recommended-products-slider";
 
@@ -85,9 +86,17 @@ export function SiteFooter() {
       </section>
 
       <section>
-        <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 md:flex-row md:items-start md:justify-between">
+        <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 md:flex-row md:items-start md:justify-start md:gap-12">
           <div className="space-y-3 text-sm">
-            <p className="text-lg font-semibold tracking-tight text-white">smart-lock.ro</p>
+            <a href="/" className="inline-flex items-center">
+              <Image
+                src="/logo-smart-lock-v3.png"
+                alt="Smart-Lock.ro"
+                width={220}
+                height={72}
+                className="h-14 w-auto"
+              />
+            </a>
             <ul className="space-y-1 text-neutral-300">
               <li className="flex items-center gap-2">
                 <span>📞</span>

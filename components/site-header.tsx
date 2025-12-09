@@ -18,7 +18,7 @@ export function SiteHeader() {
           onClick={() => setMobileOpen(false)}
         >
           <Image
-            src="/logo-smart-lock-v2.png"
+            src="/logo-smart-lock-v3.png"
             alt="Smart-Lock.ro"
             width={260}
             height={84}
