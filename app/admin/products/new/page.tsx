@@ -126,9 +126,8 @@ export default function AdminNewProductPage() {
       .maybeSingle<{ id: string }>();
 
     if (insertError || !inserted) {
-      setError(
-        `Nu am putut salva produsul: ${insertError.message || "eroare necunoscută"}`
-      );
+      const message = insertError?.message || "eroare necunoscută";
+      setError(`Nu am putut salva produsul: ${message}`);
       setSaving(false);
       return;
     }
