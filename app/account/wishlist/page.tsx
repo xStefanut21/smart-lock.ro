@@ -17,6 +17,7 @@ export default function WishlistPage() {
   const router = useRouter();
   const [items, setItems] = useState<WishlistItem[] | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -30,7 +31,54 @@ export default function WishlistPage() {
         return;
       }
 
+      setUserId(user.id);
+
       try {
+        // Încercăm mai întâi să citim wishlist-ul din baza de date, legat de utilizator
+        const { data: dbItems, error: dbError } = await supabase
+          .from("wishlists")
+          .select("product_id, products(name, price, image_url, slug)")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+
+        if (!dbError && dbItems && dbItems.length > 0) {
+          const mapped: WishlistItem[] = dbItems
+            .map((row: any) => {
+              const product = row.products;
+              if (!product) return null;
+              return {
+                id: row.product_id,
+                name: product.name,
+                price: product.price,
+                image_url: product.image_url ?? null,
+                slug: product.slug,
+              } as WishlistItem;
+            })
+            .filter(Boolean) as WishlistItem[];
+
+          setItems(mapped);
+
+          // sincronizăm și localStorage pentru ca indicatorul din header să fie corect
+          if (typeof window !== "undefined") {
+            localStorage.setItem("wishlist", JSON.stringify(mapped));
+            window.dispatchEvent(
+              new StorageEvent("storage", {
+                key: "wishlist",
+                newValue: JSON.stringify(mapped),
+              })
+            );
+          }
+        } else {
+          // fallback: vechiul comportament bazat doar pe localStorage
+          const raw = typeof window !== "undefined" ? localStorage.getItem("wishlist") : null;
+          if (!raw) {
+            setItems([]);
+          } else {
+            const parsed = JSON.parse(raw);
+            setItems(Array.isArray(parsed) ? parsed : []);
+          }
+        }
+      } catch {
         const raw = typeof window !== "undefined" ? localStorage.getItem("wishlist") : null;
         if (!raw) {
           setItems([]);
@@ -38,8 +86,6 @@ export default function WishlistPage() {
           const parsed = JSON.parse(raw);
           setItems(Array.isArray(parsed) ? parsed : []);
         }
-      } catch {
-        setItems([]);
       }
 
       setAuthChecked(true);
@@ -54,6 +100,38 @@ export default function WishlistPage() {
   }
 
   const isEmpty = !items || items.length === 0;
+
+  async function handleRemove(itemId: string) {
+    const supabase = createSupabaseBrowserClient();
+
+    // actualizăm localStorage + UI
+    const raw = typeof window !== "undefined" ? localStorage.getItem("wishlist") : null;
+    const current = raw ? (JSON.parse(raw) as WishlistItem[]) : [];
+    const next = current.filter((i) => i.id !== itemId);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("wishlist", JSON.stringify(next));
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "wishlist",
+          newValue: JSON.stringify(next),
+        })
+      );
+    }
+    setItems(next);
+
+    // ștergem și din tabela wishlists pentru utilizatorul curent, dacă îl cunoaștem
+    if (userId) {
+      try {
+        await supabase
+          .from("wishlists")
+          .delete()
+          .eq("user_id", userId)
+          .eq("product_id", itemId);
+      } catch (err) {
+        console.error("Wishlist DB delete failed", err);
+      }
+    }
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 text-sm text-neutral-200">
@@ -129,17 +207,7 @@ export default function WishlistPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      const raw = localStorage.getItem("wishlist");
-                      const current = raw ? (JSON.parse(raw) as WishlistItem[]) : [];
-                      const next = current.filter((i) => i.id !== item.id);
-                      localStorage.setItem("wishlist", JSON.stringify(next));
-                      setItems(next);
-                      window.dispatchEvent(
-                        new StorageEvent("storage", {
-                          key: "wishlist",
-                          newValue: JSON.stringify(next),
-                        })
-                      );
+                      void handleRemove(item.id);
                     }}
                     className="flex items-center gap-1 text-[11px] text-neutral-300 hover:text-red-300"
                   >

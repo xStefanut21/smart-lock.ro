@@ -19,7 +19,31 @@ export default function CartPage() {
   useEffect(() => {
     const stored = localStorage.getItem("cart");
     if (stored) {
-      setItems(JSON.parse(stored));
+      try {
+        const raw = JSON.parse(stored) as CartItem[];
+        // normalizăm: o singură intrare per combinație (id, color), cu cantități adunate
+        const map = new Map<string, CartItem>();
+        for (const item of raw) {
+          const key = `${item.id}__${item.color ?? ""}`;
+          const existing = map.get(key);
+          if (existing) {
+            map.set(key, {
+              ...existing,
+              quantity: existing.quantity + (item.quantity ?? 1),
+            });
+          } else {
+            map.set(key, {
+              ...item,
+              quantity: item.quantity ?? 1,
+            });
+          }
+        }
+        const normalized = Array.from(map.values());
+        setItems(normalized);
+        localStorage.setItem("cart", JSON.stringify(normalized));
+      } catch {
+        setItems([]);
+      }
     }
   }, []);
 
@@ -29,28 +53,36 @@ export default function CartPage() {
   function syncAndSetItems(next: CartItem[]) {
     setItems(next);
     localStorage.setItem("cart", JSON.stringify(next));
+    // anunțăm restul aplicației (ex. NavCartIndicator) că s-a schimbat coșul
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: "cart", newValue: JSON.stringify(next) })
+      );
+    }
   }
 
-  function handleIncrease(id: string) {
+  function handleIncrease(id: string, color?: string) {
     syncAndSetItems(
       items.map((item) =>
-        item.id === id ? { ...item, quantity: item.quantity + 1 } : item
+        item.id === id && item.color === color
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
       )
     );
   }
 
-  function handleDecrease(id: string) {
+  function handleDecrease(id: string, color?: string) {
     syncAndSetItems(
       items.map((item) =>
-        item.id === id && item.quantity > 1
+        item.id === id && item.color === color && item.quantity > 1
           ? { ...item, quantity: item.quantity - 1 }
           : item
       )
     );
   }
 
-  function handleRemove(id: string) {
-    syncAndSetItems(items.filter((item) => item.id !== id));
+  function handleRemove(id: string, color?: string) {
+    syncAndSetItems(items.filter((item) => !(item.id === id && item.color === color)));
   }
 
   return (
@@ -63,7 +95,7 @@ export default function CartPage() {
           <ul className="mb-6 space-y-3">
             {items.map((item) => (
               <li
-                key={item.id}
+                key={`${item.id}-${item.color ?? "_"}`}
                 className="flex items-center justify-between gap-3 rounded-lg border border-neutral-800 bg-neutral-950 p-3 text-sm text-neutral-100"
               >
                 <div className="flex items-center gap-3">
@@ -97,7 +129,7 @@ export default function CartPage() {
                   <div className="flex items-center rounded-md border border-neutral-700 bg-neutral-900 text-xs">
                     <button
                       type="button"
-                      onClick={() => handleDecrease(item.id)}
+                      onClick={() => handleDecrease(item.id, item.color)}
                       className="flex h-7 w-7 items-center justify-center border-r border-neutral-700 text-neutral-300 hover:bg-neutral-800"
                     >
                       −
@@ -107,7 +139,7 @@ export default function CartPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleIncrease(item.id)}
+                      onClick={() => handleIncrease(item.id, item.color)}
                       className="flex h-7 w-7 items-center justify-center border-l border-neutral-700 text-neutral-300 hover:bg-neutral-800"
                     >
                       +
@@ -125,7 +157,7 @@ export default function CartPage() {
 
                   <button
                     type="button"
-                    onClick={() => handleRemove(item.id)}
+                    onClick={() => handleRemove(item.id, item.color)}
                     className="ml-1 text-xs text-red-400 hover:text-red-300"
                     aria-label="Șterge produsul din coș"
                   >

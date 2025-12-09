@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function NavWishlistIndicator() {
   const router = useRouter();
@@ -23,8 +24,81 @@ export function NavWishlistIndicator() {
     }
 
     syncFromStorage();
+
+    async function syncFromSupabase(userId: string) {
+      const supabase = createSupabaseBrowserClient();
+      const { data: dbItems, error: dbError } = await supabase
+        .from("wishlists")
+        .select("product_id, products(name, price, image_url, slug)")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (!dbError && dbItems && dbItems.length > 0) {
+        const mapped = dbItems
+          .map((row: any) => {
+            const product = row.products;
+            if (!product) return null;
+            return {
+              id: row.product_id,
+              name: product.name,
+              price: product.price,
+              image_url: product.image_url ?? null,
+              slug: product.slug,
+            };
+          })
+          .filter(Boolean);
+
+        if (typeof window !== "undefined") {
+          localStorage.setItem("wishlist", JSON.stringify(mapped));
+          setCount(mapped.length);
+        }
+      } else {
+        // dacă nu avem nimic în DB pentru user, resetăm local wishlist-ul
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("wishlist");
+        }
+        setCount(0);
+      }
+    }
+
+    const supabase = createSupabaseBrowserClient();
+
+    // 1) Sincronizăm o dată la mount, pentru cazul în care user-ul este deja logat
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        const user = data.user;
+        if (user) {
+          return syncFromSupabase(user.id);
+        }
+        return undefined;
+      })
+      .catch(() => {
+        // ignorăm erorile, rămânem pe varianta din localStorage
+      });
+
+    // 2) Reacționăm instant la login/logout
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      const user = session?.user ?? null;
+      if (user) {
+        // user logat: sincronizăm wishlist-ul lui din Supabase
+        syncFromSupabase(user.id);
+      } else {
+        // logout: resetăm local wishlist-ul și badge-ul
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("wishlist");
+        }
+        setCount(0);
+      }
+    });
+
     window.addEventListener("storage", syncFromStorage);
-    return () => window.removeEventListener("storage", syncFromStorage);
+    return () => {
+      window.removeEventListener("storage", syncFromStorage);
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (

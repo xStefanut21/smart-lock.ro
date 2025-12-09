@@ -99,6 +99,19 @@ export default function AdminDashboardPage() {
             Gestionează imaginile afișate în sliderul de pe pagina principală.
           </span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => router.push("/admin/reviews")}
+          className="flex flex-col items-start rounded-lg border border-neutral-800 bg-neutral-950/80 p-4 text-left text-xs hover:border-red-600 hover:bg-neutral-900"
+        >
+          <span className="mb-1 text-sm font-semibold text-white">
+            ⭐ Review-uri produse
+          </span>
+          <span className="text-neutral-400">
+            Vezi, aprobă sau șterge review-urile lăsate de clienți pentru produse.
+          </span>
+        </button>
       </div>
     </div>
   );

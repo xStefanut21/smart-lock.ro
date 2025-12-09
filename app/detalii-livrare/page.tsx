@@ -93,7 +93,7 @@ export default function DetaliiLivrarePage() {
                 <ul className="list-disc space-y-1 pl-5">
                   <li>Refuzați livrarea.</li>
                   <li>Formulați rezerve clare și detaliate pe bonul de livrare al FAN Courier.</li>
-                  <li>Contactați imediat Serviciul Clienți e-securemme.ro la <span className="font-semibold">0741 119 449</span>.</li>
+                  <li>Contactați imediat Serviciul Clienți smart-lock.ro la <span className="font-semibold">0741119449</span>.</li>
                 </ul>
               </li>
             </ul>
@@ -103,7 +103,7 @@ export default function DetaliiLivrarePage() {
             <h3 className="text-sm font-semibold text-white">B. Anomalia constatată în lipsa Curierului</h3>
             <ul className="list-disc space-y-1 pl-5 text-neutral-300">
               <li>
-                <span className="font-semibold">Semnalați incidentul:</span> Contactați Serviciul Clienți e-securemme.ro (Tel: <span className="font-semibold">0741 119 449</span> sau E-mail: <span className="font-semibold">office@e-securemme.ro</span>).
+                <span className="font-semibold">Semnalați incidentul:</span> Contactați Serviciul Clienți smart-lock.ro (Tel: <span className="font-semibold">0741119449</span> sau E-mail: <span className="font-semibold">contact@smart-lock.ro</span>).
               </li>
               <li>
                 <span className="font-semibold">Termen limită:</span> Notificarea pagubelor sau lipsurilor trebuie făcută în termen de maximum 3 zile lucrătoare de la data livrării.

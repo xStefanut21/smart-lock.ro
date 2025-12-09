@@ -13,6 +13,7 @@ interface Review {
   id: string;
   content: string;
   created_at: string;
+  is_approved?: boolean;
   profiles?: {
     full_name?: string | null;
   } | null;
@@ -26,6 +27,7 @@ export function ProductDescriptionReviewsTabs({ productId, slug, description }: 
   const [reviewText, setReviewText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -39,8 +41,9 @@ export function ProductDescriptionReviewsTabs({ productId, slug, description }: 
       setLoadingReviews(true);
       const { data } = await supabase
         .from("product_reviews")
-        .select("id, content, created_at, profiles(full_name)")
+        .select("id, content, created_at, is_approved, profiles(full_name)")
         .eq("product_id", productId)
+        .eq("is_approved", true)
         .order("created_at", { ascending: false });
 
       if (data && Array.isArray(data)) {
@@ -58,30 +61,32 @@ export function ProductDescriptionReviewsTabs({ productId, slug, description }: 
 
     setSubmitting(true);
     setError(null);
+    setInfo(null);
     const supabase = createSupabaseBrowserClient();
 
-    const { data, error: insertError } = await supabase
+    const { error: insertError } = await supabase
       .from("product_reviews")
       .insert({
         product_id: productId,
         user_id: userId,
         content: reviewText.trim(),
+        is_approved: false,
       })
-      .select("id, content, created_at, profiles(full_name)")
-      .maybeSingle<Review>();
+      .select("id")
+      .maybeSingle();
 
     setSubmitting(false);
 
-    if (insertError || !data) {
+    if (insertError) {
       setError(
         insertError?.message || "Nu am putut salva review-ul. Încearcă din nou."
       );
       return;
     }
 
-    setReviews((prev) => [data, ...prev]);
     setReviewText("");
     setActive("reviews");
+    setInfo("Îţi mulţumim pentru opinie. Aceasta a fost trimisă către aprobare.");
   }
 
   const reviewCount = reviews.length;
@@ -153,6 +158,10 @@ export function ProductDescriptionReviewsTabs({ productId, slug, description }: 
                   </li>
                 ))}
               </ul>
+            )}
+
+            {info && (
+              <p className="text-[11px] text-emerald-300">{info}</p>
             )}
 
             {userId ? (

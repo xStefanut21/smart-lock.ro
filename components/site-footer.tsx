@@ -28,7 +28,7 @@ export function SiteFooter() {
             <p className="flex items-center gap-2 text-neutral-200">
               <span className="text-lg">☎</span>
               <span>
-                Consultanță telefonică: <span className="font-medium">0741 119 449</span>
+                Consultanță telefonică: <span className="font-medium">0741119449</span>
               </span>
             </p>
 
@@ -100,7 +100,7 @@ export function SiteFooter() {
             <ul className="space-y-1 text-neutral-300">
               <li className="flex items-center gap-2">
                 <span>📞</span>
-                <span>0741 119 449</span>
+                <span>0741119449</span>
               </li>
               <li className="flex items-center gap-2">
                 <span>✉️</span>

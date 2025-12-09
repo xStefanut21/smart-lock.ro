@@ -24,7 +24,7 @@ export default function ContactPage() {
           </p>
           <p>București, România</p>
           <p className="mt-2">Email: contact@smart-lock.ro</p>
-          <p>Telefon: 0741 119 449</p>
+          <p>Telefon: 0741119449</p>
         </div>
         <div className="text-right md:text-left">
           <p className="mb-1 text-[13px] font-semibold text-neutral-200">

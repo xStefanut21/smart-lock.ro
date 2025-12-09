@@ -92,6 +92,11 @@ export default function CheckoutPage() {
   function syncCart(next: CartItem[]) {
     setItems(next);
     localStorage.setItem("cart", JSON.stringify(next));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: "cart", newValue: JSON.stringify(next) })
+      );
+    }
   }
 
   function handleIncrease(id: string) {
@@ -276,6 +281,11 @@ export default function CheckoutPage() {
     }
 
     localStorage.removeItem("cart");
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: "cart", newValue: null })
+      );
+    }
     setLoading(false);
     router.push(`/order-confirmation/${order.id}`);
   }

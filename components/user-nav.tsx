@@ -66,6 +66,19 @@ export function UserNav() {
   async function handleLogout() {
     const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
+    // Golește coșul și wishlist-ul din browser la ieșirea din cont.
+    // Datele din tabela "wishlists" rămân salvate per utilizator în Supabase.
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("cart");
+      localStorage.removeItem("wishlist");
+
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: "cart", newValue: null })
+      );
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: "wishlist", newValue: null })
+      );
+    }
     setEmail(null);
     setOpen(false);
     setIsAdmin(false);

@@ -95,8 +95,28 @@ export function WishlistToggleButton({
       ];
     }
 
+    // actualizăm localStorage + eveniment de storage
     writeWishlist(next);
     setActive(!exists);
+
+    // oglindim modificarea și în tabela wishlists din Supabase, per utilizator
+    try {
+      if (exists) {
+        await supabase
+          .from("wishlists")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("product_id", productId);
+      } else {
+        await supabase.from("wishlists").upsert({
+          user_id: user.id,
+          product_id: productId,
+        });
+      }
+    } catch (err) {
+      // dacă tabela nu există sau apare o eroare, nu blocăm UI-ul; localStorage rămâne sursa de adevăr
+      console.error("Wishlist sync failed", err);
+    }
   }
 
   return (

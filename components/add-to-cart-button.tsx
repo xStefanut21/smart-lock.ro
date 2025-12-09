@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface AddToCartButtonProps {
   productId: string;
@@ -9,6 +9,7 @@ interface AddToCartButtonProps {
   price: number; // in bani
   imageUrl?: string | null;
   disabled?: boolean;
+  quantity?: number;
 }
 
 export function AddToCartButton({
@@ -17,19 +18,35 @@ export function AddToCartButton({
   price,
   imageUrl,
   disabled,
+  quantity,
 }: AddToCartButtonProps) {
   const router = useRouter();
   const [showConfirm, setShowConfirm] = useState(false);
+  const [inCart, setInCart] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem("cart");
+      if (!raw) return;
+      const cart = JSON.parse(raw) as { id: string }[];
+      const exists = cart.some((item) => item.id === productId);
+      setInCart(exists);
+    } catch {
+      setInCart(false);
+    }
+  }, [productId]);
 
   function handleAdd() {
+    const qty = quantity && quantity > 0 ? quantity : 1;
     const raw = typeof window !== "undefined" ? localStorage.getItem("cart") : null;
     const cart = raw ? JSON.parse(raw) : [];
 
     const existing = cart.find((item: any) => item.id === productId);
     if (existing) {
-      existing.quantity += 1;
+      existing.quantity += qty;
     } else {
-      cart.push({ id: productId, name, price, quantity: 1, image: imageUrl ?? null });
+      cart.push({ id: productId, name, price, quantity: qty, image: imageUrl ?? null });
     }
 
     localStorage.setItem("cart", JSON.stringify(cart));
@@ -41,6 +58,7 @@ export function AddToCartButton({
       );
     }
 
+    setInCart(true);
     setShowConfirm(true);
   }
 
@@ -63,7 +81,7 @@ export function AddToCartButton({
         onClick={handleAdd}
         className="w-full rounded-md bg-blue-600 py-1.5 text-sm font-medium text-white hover:bg-blue-500"
       >
-        Adaugă în coș
+        {inCart ? "În coș" : "Adaugă în coș"}
       </button>
 
       {showConfirm && (

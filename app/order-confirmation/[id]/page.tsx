@@ -29,7 +29,7 @@ export default async function OrderConfirmationPage({ params }: OrderConfirmatio
         </p>
         <p>
           Dacă întâmpini orice problemă sau nu primești emailul de confirmare, ne poți contacta la
-          <span className="font-medium"> 0770 643 626</span> sau pe email la
+          <span className="font-medium"> 0741119449</span> sau pe email la
           <span className="font-medium"> contact@smart-lock.ro</span>.
         </p>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 interface ProductColorAddToCartProps {
@@ -24,6 +24,26 @@ export function ProductColorAddToCart({
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [inCart, setInCart] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem("cart");
+      if (!raw) {
+        setInCart(false);
+        return;
+      }
+      const cart = JSON.parse(raw) as { id: string; color?: string }[];
+      const exists = cart.some(
+        (item) => item.id === productId && item.color === (selectedColor || undefined)
+      );
+      setInCart(exists);
+    } catch {
+      setInCart(false);
+    }
+  }, [productId, selectedColor]);
 
   function handleAdd() {
     if (!stockAvailable) return;
@@ -42,14 +62,16 @@ export function ProductColorAddToCart({
       (item: any) => item.id === productId && item.color === selectedColor
     );
 
+    const qty = quantity && quantity > 0 ? quantity : 1;
+
     if (existing) {
-      existing.quantity += 1;
+      existing.quantity += qty;
     } else {
       cart.push({
         id: productId,
         name,
         price,
-        quantity: 1,
+        quantity: qty,
         image: imageUrl ?? null,
         color: selectedColor,
       });
@@ -63,6 +85,7 @@ export function ProductColorAddToCart({
       );
     }
 
+    setInCart(true);
     setShowConfirm(true);
   }
 
@@ -100,14 +123,38 @@ export function ProductColorAddToCart({
         {error && <p className="text-[11px] text-red-400">{error}</p>}
       </div>
 
-      <div>
-        <button
-          type="button"
-          onClick={handleAdd}
-          className="w-full rounded-md bg-blue-600 py-1.5 text-sm font-medium text-white hover:bg-blue-500"
-        >
-          Adaugă în coș
-        </button>
+      <div className="flex items-stretch gap-2">
+        <div className="flex items-center rounded-md border border-neutral-700 bg-neutral-900 text-xs">
+          <button
+            type="button"
+            onClick={() => setQuantity((prev) => (prev > 1 ? prev - 1 : 1))}
+            className="flex h-8 w-8 items-center justify-center border-r border-neutral-700 text-neutral-200 hover:bg-neutral-800"
+            aria-label="Scade cantitatea"
+          >
+            −
+          </button>
+          <div className="flex h-8 min-w-[2.5rem] items-center justify-center px-2 text-sm font-medium text-white">
+            {quantity}
+          </div>
+          <button
+            type="button"
+            onClick={() => setQuantity((prev) => prev + 1)}
+            className="flex h-8 w-8 items-center justify-center border-l border-neutral-700 text-neutral-200 hover:bg-neutral-800"
+            aria-label="Crește cantitatea"
+          >
+            +
+          </button>
+        </div>
+
+        <div className="flex-1">
+          <button
+            type="button"
+            onClick={handleAdd}
+            className="w-full rounded-md bg-blue-600 py-1.5 text-sm font-medium text-white hover:bg-blue-500"
+          >
+            {inCart ? "În coș" : "Adaugă în coș"}
+          </button>
+        </div>
       </div>
 
       {showConfirm && (

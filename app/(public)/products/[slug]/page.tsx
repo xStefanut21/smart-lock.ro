@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AddToCartButton } from "@/components/add-to-cart-button";
+import { ProductSimpleAddToCartWithQuantity } from "@/components/product-simple-add-to-cart-with-quantity";
 import { ProductColorAddToCart } from "@/components/product-color-add-to-cart";
 import { WishlistToggleButton } from "@/components/wishlist-toggle-button";
 import { ProductImageGallery } from "@/components/product-image-gallery";
@@ -140,7 +141,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     .filter((c: string) => c.length > 0)}
                 />
               ) : (
-                <AddToCartButton
+                <ProductSimpleAddToCartWithQuantity
                   productId={product.id}
                   name={product.name}
                   price={product.price}

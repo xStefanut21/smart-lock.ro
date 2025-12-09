@@ -42,7 +42,7 @@ export default function CumCumperiPage() {
           </h2>
           <p className="text-neutral-300">
             Dacă preferi să discuți cu un consultant, ne poți suna la
-            <span className="font-semibold"> 0741 119 449</span>. Îți vom prezenta
+            <span className="font-semibold"> 0741119449</span>. Îți vom prezenta
             opțiunile disponibile și vom prelua datele necesare pentru livrare.
           </p>
         </div>
@@ -58,7 +58,7 @@ export default function CumCumperiPage() {
           <ul className="list-disc space-y-1 pl-5 text-neutral-300">
             <li>
               <span className="font-semibold">Trimiteți mesaj:</span> Scrie-ne pe
-              WhatsApp la <span className="font-semibold">0741 119 449</span>.
+              WhatsApp la <span className="font-semibold">0741119449</span>.
             </li>
             <li>
               <span className="font-semibold">Includeți:</span> Modelele dorite,
