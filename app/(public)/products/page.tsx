@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ProductsListingClient } from "@/components/products-listing-client";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Produse",
 };
