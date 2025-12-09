@@ -125,7 +125,16 @@ export function SiteFooter() {
                     Confidențialitate
                   </a>
                 </li>
-                <li>Termeni și condiții</li>
+                <li>
+                  <a href="/termeni-si-conditii" className="hover:text-white">
+                    Termeni și condiții
+                  </a>
+                </li>
+                <li>
+                  <a href="/anpc" className="hover:text-white">
+                    ANPC
+                  </a>
+                </li>
               </ul>
             </div>
             <div>
@@ -177,9 +186,10 @@ export function SiteFooter() {
                 Date comerciale
               </p>
               <ul className="space-y-1 text-neutral-300">
-                <li>Smart Lock SRL</li>
-                <li>CUI / Nr. Reg. Com. – de completat</li>
-                <li>Sediu social – de completat</li>
+                <li>Monvelli Exclusive SRL</li>
+                <li>Nr. Reg. Com.: J40/5819/2020</li>
+                <li>C.U.I.: 42578035</li>
+                <li>Capital social: 200 RON</li>
               </ul>
             </div>
           </div>
