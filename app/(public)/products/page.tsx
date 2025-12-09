@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ProductsListingClient } from "@/components/products-listing-client";
+
+export const metadata: Metadata = {
+  title: "Produse",
+};
 
 export default async function ProductsPage() {
   const supabase = createSupabaseServerClient();

@@ -1,10 +1,30 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AddToCartButton } from "@/components/add-to-cart-button";
 import { WishlistToggleButton } from "@/components/wishlist-toggle-button";
+import { ProductImageGallery } from "@/components/product-image-gallery";
+import { ProductDescriptionReviewsTabs } from "@/components/product-description-reviews-tabs";
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata(
+  { params }: ProductPageProps
+): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = createSupabaseServerClient();
+
+  const { data: product } = await supabase
+    .from("products")
+    .select("name")
+    .eq("slug", slug)
+    .maybeSingle<{ name: string | null }>();
+
+  return {
+    title: product?.name || "Produs",
+  };
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
@@ -14,13 +34,32 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const { data: product } = await supabase
     .from("products")
     .select(
-      "id, name, price, short_description, description, specs, image_url, stock, is_active, slug"
+      "id, name, price, short_description, description, specs, image_url, stock, is_active, slug, product_images(image_url, sort_order)"
     )
     .eq("slug", slug)
-    .maybeSingle();
+    .maybeSingle<any>();
 
   if (!product || product.is_active === false) {
     notFound();
+  }
+
+  const galleryImages: string[] = [];
+
+  if (product.product_images && Array.isArray(product.product_images)) {
+    const sorted = [...product.product_images].sort((a, b) => {
+      const sa = typeof a.sort_order === "number" ? a.sort_order : 0;
+      const sb = typeof b.sort_order === "number" ? b.sort_order : 0;
+      return sa - sb;
+    });
+    for (const img of sorted) {
+      if (img.image_url) {
+        galleryImages.push(img.image_url as string);
+      }
+    }
+  }
+
+  if (!galleryImages.length && product.image_url) {
+    galleryImages.push(product.image_url as string);
   }
 
   return (
@@ -28,20 +67,28 @@ export default async function ProductPage({ params }: ProductPageProps) {
       <a href="/products" className="text-sm text-blue-500 hover:underline">
         &larr; Înapoi la catalog
       </a>
-      <div className="mt-4 flex flex-col gap-6 md:flex-row">
-        {product.image_url && (
-          <div className="w-full max-w-xs flex-shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={product.image_url}
-              alt={product.name}
-              className="w-full rounded-lg border border-neutral-800 object-cover"
-            />
+      <nav className="mt-2 text-[11px] text-neutral-500">
+        <a href="/" className="hover:text-neutral-200">
+          Acasă
+        </a>
+        <span className="mx-1">/</span>
+        <a href="/products" className="hover:text-neutral-200">
+          Produse
+        </a>
+        <span className="mx-1">/</span>
+        <span className="text-neutral-300">{product.name}</span>
+      </nav>
+      <div className="mt-4 flex flex-col gap-8 md:flex-row">
+        {galleryImages.length > 0 && (
+          <div className="md:w-1/2">
+            <ProductImageGallery images={galleryImages} alt={product.name} />
           </div>
         )}
         <div className="flex-1">
           <div className="flex items-start justify-between gap-3">
-            <h1 className="text-3xl font-semibold">{product.name}</h1>
+            <h1 className="text-2xl font-semibold md:text-3xl">
+              {product.name}
+            </h1>
             <WishlistToggleButton
               productId={product.id}
               name={product.name}
@@ -50,46 +97,49 @@ export default async function ProductPage({ params }: ProductPageProps) {
               slug={product.slug}
             />
           </div>
-          <p className="mt-2 text-lg font-semibold text-blue-500">
-            {new Intl.NumberFormat("ro-RO", {
-              style: "currency",
-              currency: "RON",
-            }).format(product.price)}
-          </p>
-          <p className="mt-1 text-xs text-neutral-400">
-            {typeof product.stock === "number" && product.stock > 0
-              ? `În stoc (${product.stock} buc.)`
-              : "Stoc epuizat"}
-          </p>
-          <div className="mt-3 max-w-xs">
-        <AddToCartButton
-          productId={product.id}
-          name={product.name}
-          price={product.price}
-          disabled={!(typeof product.stock === "number" && product.stock > 0)}
-        />
+          {product.short_description && (
+            <p className="mt-2 text-sm text-neutral-300">
+              {product.short_description}
+            </p>
+          )}
+          <div className="mt-4 rounded-lg border border-neutral-800 bg-neutral-950/80 p-4 text-sm text-neutral-200">
+            <div className="flex flex-col gap-2 md:flex-row md:items-baseline md:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-400">
+                  {typeof product.stock === "number" && product.stock > 0
+                    ? "În stoc"
+                    : "Stoc epuizat"}
+                </p>
+                {typeof product.stock === "number" && product.stock > 0 && (
+                  <p className="text-[11px] text-neutral-400">
+                    ({product.stock} bucăți disponibile)
+                  </p>
+                )}
+              </div>
+              <p className="text-2xl font-semibold text-blue-400">
+                {new Intl.NumberFormat("ro-RO", {
+                  style: "currency",
+                  currency: "RON",
+                }).format(product.price)}
+              </p>
+            </div>
+            <div className="mt-4 max-w-xs">
+              <AddToCartButton
+                productId={product.id}
+                name={product.name}
+                price={product.price}
+                disabled={!(typeof product.stock === "number" && product.stock > 0)}
+              />
+            </div>
           </div>
         </div>
       </div>
-      {product.short_description && (
-        <p className="mt-4 text-neutral-200">{product.short_description}</p>
-      )}
-      {product.description && (
-        <div className="mt-6 rounded-lg bg-neutral-900 p-4 text-neutral-100">
-          <h2 className="mb-2 text-lg font-medium">Descriere</h2>
-          <p className="whitespace-pre-line break-words text-sm leading-relaxed">
-            {product.description}
-          </p>
-        </div>
-      )}
-      {product.specs && (
-        <div className="mt-6 rounded-lg bg-neutral-900 p-4 text-neutral-100">
-          <h2 className="mb-2 text-lg font-medium">Specificații tehnice</h2>
-          <pre className="text-xs whitespace-pre-wrap">
-            {JSON.stringify(product.specs, null, 2)}
-          </pre>
-        </div>
-      )}
+
+      <ProductDescriptionReviewsTabs
+        productId={product.id}
+        slug={product.slug}
+        description={product.description}
+      />
     </div>
   );
 }

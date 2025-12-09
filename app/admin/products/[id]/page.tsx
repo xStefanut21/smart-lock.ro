@@ -17,6 +17,12 @@ type AdminProduct = {
   description: string | null;
 };
 
+type ProductImage = {
+  id: string;
+  image_url: string;
+  sort_order: number | null;
+};
+
 export default function AdminEditProductPage() {
   const router = useRouter();
   const params = useParams();
@@ -37,6 +43,9 @@ export default function AdminEditProductPage() {
   const [stock, setStock] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [description, setDescription] = useState("");
+  const [extraImages, setExtraImages] = useState<ProductImage[]>([]);
+  const [extraImageFiles, setExtraImageFiles] = useState<File[]>([]);
+  const [addingImage, setAddingImage] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -93,11 +102,186 @@ export default function AdminEditProductPage() {
       );
       setIsActive(data.is_active !== false);
       setDescription(data.description ?? "");
+
+      const { data: imagesData } = await supabase
+        .from("product_images")
+        .select("id, image_url, sort_order")
+        .eq("product_id", id)
+        .order("sort_order", { ascending: true });
+
+      if (imagesData && Array.isArray(imagesData)) {
+        setExtraImages(imagesData as ProductImage[]);
+      }
       setLoadingProduct(false);
     }
 
     load();
   }, [id, router]);
+
+  async function handleAddExtraImage() {
+    if (!id || extraImageFiles.length === 0) return;
+
+    setAddingImage(true);
+    const supabase = createSupabaseBrowserClient();
+
+    let currentMaxOrder = extraImages.reduce(
+      (max, img) => (typeof img.sort_order === "number" && img.sort_order > max ? img.sort_order : max),
+      0
+    );
+
+    const newlyInserted: ProductImage[] = [];
+
+    for (const file of extraImageFiles) {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(filePath, file);
+
+      if (uploadError) {
+        setError(
+          `Nu am putut încărca una dintre imaginile suplimentare: ${
+            uploadError.message || "eroare necunoscută"
+          }`
+        );
+        setAddingImage(false);
+        return;
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("product-images").getPublicUrl(filePath);
+
+      currentMaxOrder += 1;
+
+      const { data: inserted, error: insertError } = await supabase
+        .from("product_images")
+        .insert({
+          product_id: id,
+          image_url: publicUrl,
+          sort_order: currentMaxOrder,
+        })
+        .select("id, image_url, sort_order")
+        .maybeSingle<ProductImage>();
+
+      if (insertError || !inserted) {
+        setError(
+          `Nu am putut salva una dintre imaginile suplimentare: ${
+            insertError?.message || "eroare necunoscută"
+          }`
+        );
+        setAddingImage(false);
+        return;
+      }
+
+      newlyInserted.push(inserted);
+    }
+
+    setExtraImages((prev) => [...prev, ...newlyInserted]);
+    setExtraImageFiles([]);
+    setAddingImage(false);
+  }
+
+  async function handleDeleteExtraImage(imageId: string) {
+    if (!id) return;
+
+    const imageToDelete = extraImages.find((img) => img.id === imageId);
+    const supabase = createSupabaseBrowserClient();
+
+    if (imageToDelete?.image_url) {
+      const marker = "/product-images/";
+      const parts = imageToDelete.image_url.split(marker);
+      if (parts.length === 2 && parts[1]) {
+        const path = parts[1];
+        const { error: storageError } = await supabase.storage
+          .from("product-images")
+          .remove([path]);
+
+        if (storageError) {
+          // nu blocăm ștergerea din DB, dar afișăm eroarea pentru debugging
+          setError(
+            `Nu am putut șterge fișierul imaginii din storage (rămâne acolo, dar nu va mai fi folosit): ${
+              storageError.message || "eroare necunoscută"
+            }`
+          );
+        }
+      }
+    }
+
+    const { error: deleteError } = await supabase
+      .from("product_images")
+      .delete()
+      .eq("id", imageId)
+      .eq("product_id", id);
+
+    if (deleteError) {
+      setError(
+        `Nu am putut șterge imaginea suplimentară: ${
+          deleteError.message || "eroare necunoscută"
+        }`
+      );
+      return;
+    }
+
+    setExtraImages((prev) => prev.filter((img) => img.id !== imageId));
+  }
+
+  async function moveExtraImage(imageId: string, direction: "up" | "down") {
+    if (!id) return;
+
+    const index = extraImages.findIndex((img) => img.id === imageId);
+    if (index === -1) return;
+
+    const neighborIndex =
+      direction === "up" ? index - 1 : index + 1;
+
+    if (neighborIndex < 0 || neighborIndex >= extraImages.length) {
+      return;
+    }
+
+    const current = extraImages[index];
+    const neighbor = extraImages[neighborIndex];
+
+    const currentOrder = typeof current.sort_order === "number" ? current.sort_order : 0;
+    const neighborOrder = typeof neighbor.sort_order === "number" ? neighbor.sort_order : 0;
+
+    const supabase = createSupabaseBrowserClient();
+
+    const { error: error1 } = await supabase
+      .from("product_images")
+      .update({ sort_order: neighborOrder })
+      .eq("id", current.id)
+      .eq("product_id", id);
+
+    if (error1) {
+      setError(
+        `Nu am putut reordona imaginile: ${error1.message || "eroare necunoscută"}`
+      );
+      return;
+    }
+
+    const { error: error2 } = await supabase
+      .from("product_images")
+      .update({ sort_order: currentOrder })
+      .eq("id", neighbor.id)
+      .eq("product_id", id);
+
+    if (error2) {
+      setError(
+        `Nu am putut reordona imaginile: ${error2.message || "eroare necunoscută"}`
+      );
+      return;
+    }
+
+    setExtraImages((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...neighbor, sort_order: currentOrder };
+      copy[neighborIndex] = { ...current, sort_order: neighborOrder };
+      return copy;
+    });
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -110,8 +294,7 @@ export default function AdminEditProductPage() {
 
     const normalizedPriceString = price
       .trim()
-      .replace(/\./g, "") // eliminăm separatoarele de mii
-      .replace(",", "."); // înlocuim virgula cu punct
+      .replace(",", "."); // permitem atât 349,99 cât și 349.99
 
     const numericPrice = Number(normalizedPriceString);
     if (Number.isNaN(numericPrice) || numericPrice <= 0) {
@@ -175,16 +358,47 @@ export default function AdminEditProductPage() {
       })
       .eq("id", id);
 
-    setSaving(false);
-
     if (updateError) {
       setError(
         `Nu am putut salva modificările: ${
           updateError.message || "eroare necunoscută"
         }`
       );
+      setSaving(false);
       return;
     }
+
+    if (finalImageUrl) {
+      const alreadyInGallery = extraImages.some(
+        (img) => img.image_url === finalImageUrl
+      );
+
+      if (!alreadyInGallery) {
+        const minOrder = extraImages.reduce(
+          (min, img) =>
+            typeof img.sort_order === "number" && img.sort_order < min
+              ? img.sort_order
+              : min,
+          0
+        );
+
+        const { data: insertedImage } = await supabase
+          .from("product_images")
+          .insert({
+            product_id: id,
+            image_url: finalImageUrl,
+            sort_order: minOrder - 1,
+          })
+          .select("id, image_url, sort_order")
+          .maybeSingle<ProductImage>();
+
+        if (insertedImage) {
+          setExtraImages((prev) => [...prev, insertedImage]);
+        }
+      }
+    }
+
+    setSaving(false);
 
     router.push("/admin/products");
   }
@@ -368,6 +582,95 @@ export default function AdminEditProductPage() {
           {saving ? "Se salvează modificările..." : "Salvează modificările"}
         </button>
       </form>
+
+      <section className="mt-8 rounded-xl border border-neutral-800 bg-neutral-950/80 p-6 text-xs">
+        <h2 className="mb-3 text-sm font-semibold text-white">Imagini suplimentare produs</h2>
+        <p className="mb-3 text-[11px] text-neutral-400">
+          Poți adăuga mai multe imagini pentru acest produs. Acestea vor apărea în
+          galeria de imagini de pe pagina produsului, cu posibilitate de scroll
+          stânga-dreapta și buline, similar cu bannerele de pe homepage.
+        </p>
+
+        <div className="mb-4 flex flex-col gap-2">
+          <label className="text-neutral-300" htmlFor="extraImageFile">
+            Încarcă o imagine suplimentară
+          </label>
+          <input
+            id="extraImageFile"
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) =>
+              setExtraImageFiles(e.target.files ? Array.from(e.target.files) : [])
+            }
+            className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100 outline-none file:mr-2 file:rounded-md file:border-0 file:bg-neutral-800 file:px-3 file:py-1 file:text-xs file:text-neutral-100 focus:border-red-500"
+          />
+          <button
+            type="button"
+            disabled={extraImageFiles.length === 0 || addingImage}
+            onClick={handleAddExtraImage}
+            className="inline-flex w-full items-center justify-center rounded-md bg-red-600 px-4 py-2 text-[11px] font-medium text-white hover:bg-red-500 disabled:opacity-60 sm:w-auto"
+          >
+            {addingImage ? "Se încarcă imaginea..." : "Adaugă imagine suplimentară"}
+          </button>
+        </div>
+
+        {extraImages.length === 0 ? (
+          <p className="text-[11px] text-neutral-500">
+            Nu există încă imagini suplimentare pentru acest produs.
+          </p>
+        ) : (
+          <ul className="mt-2 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+            {extraImages.map((img) => (
+              <li
+                key={img.id}
+                className="flex flex-col overflow-hidden rounded-md border border-neutral-800 bg-neutral-900"
+              >
+                <div className="flex h-32 items-center justify-center overflow-hidden bg-black/40">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.image_url}
+                    alt="Imagine suplimentară produs"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-2 px-3 py-2 text-[11px] text-neutral-300">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-neutral-500">
+                      sortare: {typeof img.sort_order === "number" ? img.sort_order : 0}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => moveExtraImage(img.id, "up")}
+                        className="flex h-5 w-5 items-center justify-center rounded-full border border-neutral-600 text-[10px] text-neutral-200 hover:border-red-500 hover:text-white"
+                        aria-label="Mută imaginea mai sus"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveExtraImage(img.id, "down")}
+                        className="flex h-5 w-5 items-center justify-center rounded-full border border-neutral-600 text-[10px] text-neutral-200 hover:border-red-500 hover:text-white"
+                        aria-label="Mută imaginea mai jos"
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteExtraImage(img.id)}
+                    className="text-[11px] text-red-400 hover:text-red-300"
+                  >
+                    Șterge
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

@@ -250,17 +250,21 @@ export function ProductsListingClient({ products }: Props) {
                       : "flex flex-1 items-center gap-4"
                   }
                 >
-                  <div className="mb-3 flex w-full items-center justify-center overflow-hidden">
-                    {product.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={product.image_url}
-                        alt={product.name}
-                        className="w-full h-auto object-contain"
-                      />
-                    ) : (
-                      <span className="text-[11px] text-neutral-500">Fără imagine</span>
-                    )}
+                  <div className="mb-3 w-full">
+                    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-black/30">
+                      {product.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="absolute inset-0 h-full w-full object-contain"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[11px] text-neutral-500">
+                          Fără imagine
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <h2 className="mb-1 text-sm font-medium text-white line-clamp-2">

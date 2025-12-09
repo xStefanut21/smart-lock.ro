@@ -1,3 +1,9 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Servicii lacătărie și montaj yale smart",
+};
+
 export default function ServicesPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 text-sm text-neutral-200">

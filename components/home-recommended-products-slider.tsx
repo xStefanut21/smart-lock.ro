@@ -130,17 +130,21 @@ export function HomeRecommendedProductsSlider() {
                     className="flex h-full w-full flex-col rounded-xl border border-neutral-800 bg-neutral-950/80 p-3 text-xs text-neutral-200 shadow-sm transition hover:border-blue-600 hover:shadow-lg"
                   >
                     <a href={`/products/${product.slug}`} className="flex flex-1 flex-col">
-                      <div className="mb-3 flex w-full items-center justify-center overflow-hidden">
-                        {product.image_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={product.image_url}
-                            alt={product.name}
-                            className="h-32 w-full object-contain"
-                          />
-                        ) : (
-                          <span className="text-[11px] text-neutral-500">Fără imagine</span>
-                        )}
+                      <div className="mb-3 w-full">
+                        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-black/30">
+                          {product.image_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={product.image_url}
+                              alt={product.name}
+                              className="absolute inset-0 h-full w-full object-contain"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-[11px] text-neutral-500">
+                              Fără imagine
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <h3 className="mb-1 line-clamp-2 text-sm font-medium text-white">

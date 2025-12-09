@@ -60,8 +60,7 @@ export default function AdminNewProductPage() {
 
     const normalizedPriceString = price
       .trim()
-      .replace(/\./g, "") // eliminăm separatoarele de mii
-      .replace(",", "."); // înlocuim virgula cu punct
+      .replace(",", "."); // permitem atât 349,99 cât și 349.99
 
     const numericPrice = Number(normalizedPriceString);
     if (Number.isNaN(numericPrice) || numericPrice <= 0) {
@@ -110,26 +109,39 @@ export default function AdminNewProductPage() {
       finalImageUrl = publicUrl || null;
     }
 
-    const { error: insertError } = await supabase.from("products").insert({
-      name: name.trim() || null,
-      slug: trimmedSlug,
-      price: numericPrice,
-      brand: brand.trim() || null,
-      short_description: shortDescription.trim() || null,
-      image_url: finalImageUrl,
-      stock: numericStock,
-      is_active: isActive,
-      description: description.trim() || null,
-    });
+    const { data: inserted, error: insertError } = await supabase
+      .from("products")
+      .insert({
+        name: name.trim() || null,
+        slug: trimmedSlug,
+        price: numericPrice,
+        brand: brand.trim() || null,
+        short_description: shortDescription.trim() || null,
+        image_url: finalImageUrl,
+        stock: numericStock,
+        is_active: isActive,
+        description: description.trim() || null,
+      })
+      .select("id")
+      .maybeSingle<{ id: string }>();
 
-    setSaving(false);
-
-    if (insertError) {
+    if (insertError || !inserted) {
       setError(
         `Nu am putut salva produsul: ${insertError.message || "eroare necunoscută"}`
       );
+      setSaving(false);
       return;
     }
+
+    if (finalImageUrl) {
+      await supabase.from("product_images").insert({
+        product_id: inserted.id,
+        image_url: finalImageUrl,
+        sort_order: 0,
+      });
+    }
+
+    setSaving(false);
 
     router.push("/admin/products");
   }

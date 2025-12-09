@@ -88,16 +88,20 @@ export default function WishlistPage() {
                   className="flex flex-1 items-center gap-4 hover:text-white"
                 >
                   <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-md border border-neutral-800 bg-neutral-900">
-                    {item.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={item.image_url}
-                        alt={item.name}
-                        className="h-full w-full object-contain"
-                      />
-                    ) : (
-                      <span className="text-[10px] text-neutral-500">Fără imagine</span>
-                    )}
+                    <div className="relative aspect-[4/3] w-full">
+                      {item.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.image_url}
+                          alt={item.name}
+                          className="absolute inset-0 h-full w-full object-contain"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[10px] text-neutral-500">
+                          Fără imagine
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-neutral-100">{item.name}</p>
