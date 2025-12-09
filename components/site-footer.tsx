@@ -110,8 +110,16 @@ export function SiteFooter() {
                 Info
               </p>
               <ul className="space-y-1 text-neutral-300">
-                <li>Politica de retur</li>
-                <li>Detalii livrare</li>
+                <li>
+                  <a href="/politica-de-retur" className="hover:text-white">
+                    Politica de retur
+                  </a>
+                </li>
+                <li>
+                  <a href="/detalii-livrare" className="hover:text-white">
+                    Detalii livrare
+                  </a>
+                </li>
                 <li>
                   <a href="/confidentialitate" className="hover:text-white">
                     Confidențialitate

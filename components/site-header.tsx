@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { NavCartIndicator } from "@/components/nav-cart-indicator";
 import { NavWishlistIndicator } from "@/components/nav-wishlist-indicator";
@@ -10,13 +11,20 @@ export function SiteHeader() {
 
   return (
     <header className="border-b border-neutral-800 bg-black/90 shadow-[0_10px_25px_rgba(0,0,0,0.6)]">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 text-sm md:px-8 md:py-5">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2 text-sm md:px-8 md:py-3">
         <a
           href="/"
-          className="text-[15px] font-semibold tracking-tight text-white"
+          className="flex items-center gap-3"
           onClick={() => setMobileOpen(false)}
         >
-          smart-lock.ro
+          <Image
+            src="/logo-smart-lock-v2.png"
+            alt="Smart-Lock.ro"
+            width={260}
+            height={84}
+            className="h-20 w-auto"
+            priority
+          />
         </a>
 
         {/* Nav desktop */}

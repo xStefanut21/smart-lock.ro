@@ -6,6 +6,8 @@ import { WishlistToggleButton } from "@/components/wishlist-toggle-button";
 import { ProductImageGallery } from "@/components/product-image-gallery";
 import { ProductDescriptionReviewsTabs } from "@/components/product-description-reviews-tabs";
 
+export const dynamic = "force-dynamic";
+
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
 }

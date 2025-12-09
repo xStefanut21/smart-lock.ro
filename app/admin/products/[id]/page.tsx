@@ -47,6 +47,17 @@ export default function AdminEditProductPage() {
   const [extraImageFiles, setExtraImageFiles] = useState<File[]>([]);
   const [addingImage, setAddingImage] = useState(false);
 
+  function getProductImagePathFromUrl(url: string | null | undefined): string | null {
+    if (!url) return null;
+
+    const marker = "/product-images/";
+    const index = url.indexOf(marker);
+
+    if (index === -1) return null;
+
+    return url.substring(index + marker.length);
+  }
+
   useEffect(() => {
     if (!id) return;
 
@@ -191,10 +202,8 @@ export default function AdminEditProductPage() {
     const supabase = createSupabaseBrowserClient();
 
     if (imageToDelete?.image_url) {
-      const marker = "/product-images/";
-      const parts = imageToDelete.image_url.split(marker);
-      if (parts.length === 2 && parts[1]) {
-        const path = parts[1];
+      const path = getProductImagePathFromUrl(imageToDelete.image_url);
+      if (path) {
         const { error: storageError } = await supabase.storage
           .from("product-images")
           .remove([path]);
@@ -317,7 +326,10 @@ export default function AdminEditProductPage() {
       return;
     }
 
+    const oldMainImageUrl = imageUrl;
+
     let finalImageUrl = imageUrl.trim() || null;
+    let newMainImagePath: string | null = null;
 
     if (imageFile) {
       const fileExt = imageFile.name.split(".").pop();
@@ -341,6 +353,7 @@ export default function AdminEditProductPage() {
       } = supabase.storage.from("product-images").getPublicUrl(filePath);
 
       finalImageUrl = publicUrl || null;
+      newMainImagePath = filePath;
     }
 
     const { error: updateError } = await supabase
@@ -366,6 +379,15 @@ export default function AdminEditProductPage() {
       );
       setSaving(false);
       return;
+    }
+
+    if (newMainImagePath) {
+      const oldPath = getProductImagePathFromUrl(oldMainImageUrl);
+      if (oldPath && oldPath !== newMainImagePath) {
+        await supabase.storage
+          .from("product-images")
+          .remove([oldPath]);
+      }
     }
 
     if (finalImageUrl) {
@@ -403,6 +425,58 @@ export default function AdminEditProductPage() {
     router.push("/admin/products");
   }
 
+  async function handleDeleteProduct() {
+    if (!id) return;
+    if (!confirm("Sigur vrei să ștergi acest produs și toate imaginile asociate?")) return;
+
+    setSaving(true);
+    const supabase = createSupabaseBrowserClient();
+
+    const pathsToDelete: string[] = [];
+
+    const { data: images } = await supabase
+      .from("product_images")
+      .select("image_url")
+      .eq("product_id", id);
+
+    if (images && Array.isArray(images)) {
+      for (const img of images as { image_url: string }[]) {
+        const p = getProductImagePathFromUrl(img.image_url);
+        if (p) pathsToDelete.push(p);
+      }
+    }
+
+    const mainPath = getProductImagePathFromUrl(imageUrl);
+    if (mainPath) pathsToDelete.push(mainPath);
+
+    if (pathsToDelete.length > 0) {
+      await supabase.storage.from("product-images").remove(pathsToDelete);
+    }
+
+    await supabase
+      .from("product_images")
+      .delete()
+      .eq("product_id", id);
+
+    const { error: deleteProductError } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", id);
+
+    setSaving(false);
+
+    if (deleteProductError) {
+      setError(
+        `Nu am putut șterge produsul: ${
+          deleteProductError.message || "eroare necunoscută"
+        }`
+      );
+      return;
+    }
+
+    router.push("/admin/products");
+  }
+
   if (!id) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10 text-sm text-neutral-200">
@@ -428,9 +502,19 @@ export default function AdminEditProductPage() {
       >
         ← Înapoi la lista de produse
       </button>
-      <h1 className="mb-4 text-lg font-semibold text-white">
-        Editează produsul
-      </h1>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-lg font-semibold text-white">
+          Editează produsul
+        </h1>
+        <button
+          type="button"
+          onClick={handleDeleteProduct}
+          disabled={saving}
+          className="rounded-md border border-red-700 px-3 py-1.5 text-xs text-red-300 hover:bg-red-900/30 disabled:opacity-60"
+        >
+          Șterge produsul
+        </button>
+      </div>
       <form
         onSubmit={handleSubmit}
         className="space-y-4 rounded-xl border border-neutral-800 bg-neutral-950/80 p-6 text-xs"

@@ -32,6 +32,17 @@ export default function AdminEditBannerPage() {
   const [isActive, setIsActive] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
 
+  function getBannerImagePathFromUrl(url: string | null | undefined): string | null {
+    if (!url) return null;
+
+    const marker = "/object/public/home_banner_images/";
+    const index = url.indexOf(marker);
+
+    if (index === -1) return null;
+
+    return url.substring(index + marker.length);
+  }
+
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
 
@@ -106,6 +117,7 @@ export default function AdminEditBannerPage() {
     const supabase = createSupabaseBrowserClient();
 
     let finalImageUrl = banner.image_url;
+    let newImagePath: string | null = null;
 
     if (imageFile) {
       const fileExt = imageFile.name.split(".").pop();
@@ -139,6 +151,7 @@ export default function AdminEditBannerPage() {
       }
 
       finalImageUrl = publicUrl;
+      newImagePath = filePath;
     }
 
     const numericSort = Number(sortOrder || "1");
@@ -169,6 +182,15 @@ export default function AdminEditBannerPage() {
       return;
     }
 
+    if (newImagePath) {
+      const oldPath = getBannerImagePathFromUrl(banner.image_url);
+      if (oldPath && oldPath !== newImagePath) {
+        await supabase.storage
+          .from("home_banner_images")
+          .remove([oldPath]);
+      }
+    }
+
     router.push("/admin/banners");
   }
 
@@ -178,6 +200,11 @@ export default function AdminEditBannerPage() {
 
     const supabase = createSupabaseBrowserClient();
     setSaving(true);
+
+    const filePath = getBannerImagePathFromUrl(banner.image_url);
+    if (filePath) {
+      await supabase.storage.from("home_banner_images").remove([filePath]);
+    }
 
     const { error: deleteError } = await supabase
       .from("home_banners")
