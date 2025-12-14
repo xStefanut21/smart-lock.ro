@@ -5,32 +5,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = "https://smart-lock.ro";
   const now = new Date();
 
+  // Doar pagini publice de shop – fără cont / admin în sitemap
   const staticRoutes: MetadataRoute.Sitemap = [
-    "",
-    "/products",
-    "/cart",
-    "/checkout",
-    "/login",
-    "/register",
-    "/account",
-    "/account/orders",
-    "/account/profile",
+    "", // homepage
+    "/products", // catalog general
   ].map((path) => ({
     url: `${baseUrl}${path}`,
     lastModified: now,
     changeFrequency: "weekly",
     priority: path === "" ? 1 : 0.7,
-  }));
-
-  const adminRoutes: MetadataRoute.Sitemap = [
-    "/admin",
-    "/admin/orders",
-    "/admin/products",
-  ].map((path) => ({
-    url: `${baseUrl}${path}`,
-    lastModified: now,
-    changeFrequency: "weekly",
-    priority: 0.3,
   }));
 
   const supabase = createSupabaseServerClient();
@@ -63,6 +46,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.5,
     }));
-
-  return [...staticRoutes, ...categoryRoutes, ...productRoutes, ...adminRoutes];
+  // sitemap final: homepage, catalog, categorii și produse
+  return [...staticRoutes, ...categoryRoutes, ...productRoutes];
 }
