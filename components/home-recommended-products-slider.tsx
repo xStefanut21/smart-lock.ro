@@ -46,7 +46,6 @@ export function HomeRecommendedProductsSlider() {
   }, []);
 
   const hasProducts = products.length > 0;
-
   const pageSize = 4;
 
   const visibleProducts = useMemo(() => {
@@ -102,14 +101,14 @@ export function HomeRecommendedProductsSlider() {
         <button
           type="button"
           onClick={goPrev}
-          className="hidden h-9 w-9 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-sm text-neutral-200 hover:border-blue-500 hover:text-white md:flex"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-sm text-neutral-200 hover:border-blue-500 hover:text-white"
           aria-label="Produse anterioare"
         >
           ‹
         </button>
         <div className="flex-1 overflow-hidden">
           <div
-            className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 transform transition-transform duration-300 ease-out ${
+            className={`grid grid-cols-2 gap-4 md:grid-cols-4 transform transition-transform duration-300 ease-out ${
               isTransitioning
                 ? direction === "right"
                   ? "-translate-x-3"
@@ -124,10 +123,12 @@ export function HomeRecommendedProductsSlider() {
                     className="h-60 w-full rounded-xl border border-neutral-800 bg-neutral-950/80 animate-pulse"
                   />
                 ))
-              : visibleProducts.map((product) => (
+              : visibleProducts.map((product, index) => (
                   <div
                     key={product.id}
-                    className="flex h-full w-full flex-col rounded-xl border border-neutral-800 bg-neutral-950/80 p-3 text-xs text-neutral-200 shadow-sm transition hover:border-blue-600 hover:shadow-lg"
+                    className={`flex h-full w-full flex-col rounded-xl border border-neutral-800 bg-neutral-950/80 p-3 text-xs text-neutral-200 shadow-sm transition hover:border-blue-600 hover:shadow-lg ${
+                      index >= 2 ? "hidden md:flex" : "flex"
+                    }`}
                   >
                     <a href={`/products/${product.slug}`} className="flex flex-1 flex-col">
                       <div className="mb-3 w-full">
@@ -195,7 +196,7 @@ export function HomeRecommendedProductsSlider() {
         <button
           type="button"
           onClick={goNext}
-          className="hidden h-9 w-9 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-sm text-neutral-200 hover:border-blue-500 hover:text-white md:flex"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-sm text-neutral-200 hover:border-blue-500 hover:text-white"
           aria-label="Produse următoare"
         >
           ›

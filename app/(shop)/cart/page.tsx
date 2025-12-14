@@ -96,7 +96,7 @@ export default function CartPage() {
             {items.map((item) => (
               <li
                 key={`${item.id}-${item.color ?? "_"}`}
-                className="flex items-center justify-between gap-3 rounded-lg border border-neutral-800 bg-neutral-950 p-3 text-sm text-neutral-100"
+                className="flex flex-col gap-3 rounded-lg border border-neutral-800 bg-neutral-950 p-3 text-sm text-neutral-100 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-md border border-neutral-800 bg-neutral-900">
@@ -125,7 +125,7 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center justify-between gap-4 sm:justify-end">
                   <div className="flex items-center rounded-md border border-neutral-700 bg-neutral-900 text-xs">
                     <button
                       type="button"

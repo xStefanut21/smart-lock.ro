@@ -366,7 +366,7 @@ export function ProductsListingClient({ products, categories }: Props) {
         <div
           className={
             viewType === "grid"
-              ? "grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+              ? "grid grid-cols-2 gap-4 md:grid-cols-3"
               : "space-y-3"
           }
         >

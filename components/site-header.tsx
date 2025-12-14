@@ -22,7 +22,7 @@ export function SiteHeader() {
             alt="Smart-Lock.ro"
             width={260}
             height={84}
-            className="h-20 w-auto"
+            className="h-14 w-auto md:h-20"
             priority
           />
         </a>
