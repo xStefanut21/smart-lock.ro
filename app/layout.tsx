@@ -22,6 +22,9 @@ export const metadata: Metadata = {
   },
   description:
     "Smart-Lock.ro este magazin online specializat în yale smart, încuietori inteligente și smart lock pentru uși de apartament și casă în România. Găsești yale digitale, gateway-uri și accesorii, cu consultanță, montaj și plată la livrare.",
+  openGraph: {
+    siteName: "Smart Lock",
+  },
 };
 
 export default function RootLayout({
@@ -37,19 +40,27 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'Store',
-              name: 'Smart-Lock.ro',
-              url: 'https://smart-lock.ro',
-              telephone: '+40 741 119 449',
-              email: 'contact@smart-lock.ro',
-              address: {
-                '@type': 'PostalAddress',
-                addressCountry: 'RO',
+            __html: JSON.stringify([
+              {
+                '@context': 'https://schema.org',
+                '@type': 'WebSite',
+                name: 'Smart Lock',
+                url: 'https://smart-lock.ro',
               },
-              areaServed: 'RO',
-            }),
+              {
+                '@context': 'https://schema.org',
+                '@type': 'Store',
+                name: 'Smart-Lock.ro',
+                url: 'https://smart-lock.ro',
+                telephone: '+40 741 119 449',
+                email: 'contact@smart-lock.ro',
+                address: {
+                  '@type': 'PostalAddress',
+                  addressCountry: 'RO',
+                },
+                areaServed: 'RO',
+              },
+            ]),
           }}
         />
         <SiteHeader />
