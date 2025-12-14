@@ -1,15 +1,8 @@
 "use client";
 
-import type { Metadata } from "next";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-
-export const metadata: Metadata = {
-  title: "Comenzile mele | Smart-Lock.ro",
-  description:
-    "Vezi istoricul comenzilor tale de yale smart și încuietori inteligente plasate pe Smart-Lock.ro.",
-};
 
 interface Order {
   id: string;
