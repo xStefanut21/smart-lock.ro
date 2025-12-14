@@ -105,7 +105,7 @@ export function NavWishlistIndicator() {
     <button
       type="button"
       onClick={() => router.push("/account/wishlist")}
-      className="relative hidden h-8 w-8 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-neutral-200 hover:border-white hover:text-white sm:flex"
+      className="relative flex h-8 w-8 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-neutral-200 hover:border-white hover:text-white"
       aria-label="Favorite"
     >
       <svg

@@ -282,7 +282,7 @@ export function ProductsListingClient({ products, categories }: Props) {
       <section className="space-y-4">
         {/* Butoane categorii vizuale */}
         {categories && categories.length > 0 && (
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {categories.map((cat) => (
               <button
                 key={cat.id}

@@ -64,7 +64,7 @@ export default function Home() {
       <HomeBannerSlider />
       {categories.length > 0 && (
         <section className="mt-6">
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {categories.map((cat) => (
               <a
                 key={cat.id}
