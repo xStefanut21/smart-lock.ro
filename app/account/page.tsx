@@ -1,8 +1,15 @@
 "use client";
 
+import type { Metadata } from "next";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
+export const metadata: Metadata = {
+  title: "Contul meu | Smart-Lock.ro",
+  description:
+    "Gestionează-ți contul Smart-Lock.ro: date personale, adrese salvate, schimbare parolă și acces rapid la istoricul comenzilor.",
+};
 
 export default function AccountPage() {
   const router = useRouter();

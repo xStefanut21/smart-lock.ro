@@ -176,6 +176,29 @@ export default function Home() {
           </div>
         </section>
       </div>
+
+      <section className="mt-10 rounded-3xl border border-neutral-900 bg-neutral-950/70 px-6 py-6 text-xs text-neutral-300 md:mt-12 md:px-8 md:py-7 md:text-sm">
+        <h2 className="mb-2 text-sm font-semibold text-white md:text-base">
+          Yale smart și încuietori inteligente pentru uși din România
+        </h2>
+        <p className="mb-2">
+          Smart-Lock.ro este un magazin online dedicat soluțiilor de {""}
+          <strong className="font-semibold text-neutral-50">yale smart</strong> și {""}
+          <strong className="font-semibold text-neutral-50">încuietori inteligente</strong> pentru uși de apartament
+          și casă. Selectăm modele compatibile cu cilindrii și ușile folosite în mod uzual în România, astfel încât
+          montajul să fie cât mai simplu.
+        </p>
+        <p className="mb-2">
+          În ofertă găsești {""}
+          <strong className="font-semibold text-neutral-50">smart lock</strong> cu control prin aplicație mobilă,
+          acces prin cod PIN, card sau amprentă, precum și gateway-uri și accesorii pentru integrare în ecosistemul
+          tău de smart home. Toate produsele sunt livrate rapid, cu opțiune de plată la livrare.
+        </p>
+        <p>
+          Pentru întrebări legate de compatibilitate sau alegerea modelului potrivit, îți oferim consultanță în limba
+          română, prin telefon sau email, astfel încât să alegi încuietoarea digitală potrivită pentru ușa ta.
+        </p>
+      </section>
     </div>
   );
 }

@@ -148,34 +148,14 @@ export function ProductsListingClient({ products, categories }: Props) {
   }
 
   function handleCategoryClick(slug: string | null) {
-    const segments = pathname.split("/").filter(Boolean);
-
-    // Dacă suntem pe /products/categories/[slug], schimbăm doar slug-ul din path,
-    // fără query param suplimentar.
-    if (segments[0] === "products" && segments[1] === "categories") {
-      if (!slug) {
-        // fără categorie specifică -> revenim la lista generală de produse
-        router.push("/products");
-        return;
-      }
-
-      router.push(`/products/categories/${encodeURIComponent(slug)}`);
+    // Pentru consistență, folosim mereu ruta /products/categories/[slug]
+    // pentru o categorie selectată și /products când este eliminată categoria.
+    if (!slug) {
+      router.push("/products");
       return;
     }
 
-    // Pentru /products (și alte variante cu query), folosim ?category=slug
-    const params = new URLSearchParams(searchParams.toString());
-
-    if (slug) {
-      params.set("category", slug);
-    } else {
-      params.delete("category");
-    }
-
-    const query = params.toString();
-    const url = query ? `${pathname}?${query}` : pathname;
-
-    router.push(url);
+    router.push(`/products/categories/${encodeURIComponent(slug)}`);
   }
 
   return (

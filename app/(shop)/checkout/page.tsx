@@ -1,5 +1,6 @@
 "use client";
 
+import type { Metadata } from "next";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,6 +14,12 @@ interface CartItem {
   image?: string | null;
   color?: string;
 }
+
+export const metadata: Metadata = {
+  title: "Checkout – finalizează comanda | Smart-Lock.ro",
+  description:
+    "Finalizează comanda pentru yale smart și încuietori inteligente pe Smart-Lock.ro. Completează datele de facturare și livrare, alege metoda de livrare și plata la livrare.",
+};
 
 export default function CheckoutPage() {
   const router = useRouter();

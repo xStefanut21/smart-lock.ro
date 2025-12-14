@@ -66,8 +66,32 @@ export default async function ProductPage({ params }: ProductPageProps) {
     galleryImages.push(product.image_url as string);
   }
 
+  const productUrl = `https://smart-lock.ro/products/${encodeURIComponent(product.slug)}`;
+  const productStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    image: galleryImages,
+    description: product.short_description || product.description || undefined,
+    sku: product.id,
+    offers: {
+      '@type': 'Offer',
+      url: productUrl,
+      priceCurrency: 'RON',
+      price: product.price,
+      availability:
+        typeof product.stock === 'number' && product.stock > 0
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/OutOfStock',
+    },
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productStructuredData) }}
+      />
       <a href="/products" className="text-sm text-blue-500 hover:underline">
         &larr; Înapoi la catalog
       </a>

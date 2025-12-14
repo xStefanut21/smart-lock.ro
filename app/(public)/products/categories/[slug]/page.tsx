@@ -4,9 +4,27 @@ import { ProductsListingClient } from "@/components/products-listing-client";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Produse pe categorii",
-};
+interface CategoryPageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = createSupabaseServerClient();
+
+  const { data: category } = await supabase
+    .from("categories")
+    .select("name")
+    .eq("slug", slug)
+    .maybeSingle<{ name: string | null }>();
+
+  const name = category?.name || "Categorie produse";
+
+  return {
+    title: `${name} – yale smart și încuietori inteligente | Smart-Lock.ro`,
+    description: `Vezi gama de ${name.toLowerCase()}: yale smart, încuietori inteligente și accesorii compatibile cu uși de apartament și casă în România.`,
+  };
+}
 
 export default async function CategoryProductsPage() {
   const supabase = createSupabaseServerClient();

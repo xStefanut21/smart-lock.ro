@@ -17,11 +17,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Smart Lock - Yale smart de înaltă securitate",
-    template: "%s – Smart Lock - Yale smart de înaltă securitate",
+    default: "Smart-Lock.ro – Yale smart și încuietori inteligente pentru uși",
+    template: "%s – Smart-Lock.ro – Yale smart și încuietori inteligente",
   },
   description:
-    "Soluții Smart Lock cu yale inteligente de înaltă securitate, gateway-uri și accesorii pentru control modern al accesului.",
+    "Smart-Lock.ro este magazin online specializat în yale smart, încuietori inteligente și smart lock pentru uși de apartament și casă în România. Găsești yale digitale, gateway-uri și accesorii, cu consultanță, montaj și plată la livrare.",
 };
 
 export default function RootLayout({
@@ -30,10 +30,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ro">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Store',
+              name: 'Smart-Lock.ro',
+              url: 'https://smart-lock.ro',
+              telephone: '+40 741 119 449',
+              email: 'contact@smart-lock.ro',
+              address: {
+                '@type': 'PostalAddress',
+                addressCountry: 'RO',
+              },
+              areaServed: 'RO',
+            }),
+          }}
+        />
         <SiteHeader />
         <CookieBanner />
         <main>{children}</main>

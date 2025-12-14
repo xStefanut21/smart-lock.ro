@@ -5,7 +5,9 @@ import { ProductsListingClient } from "@/components/products-listing-client";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Produse",
+  title: "Toate produsele – yale smart și încuietori inteligente | Smart-Lock.ro",
+  description:
+    "Catalog complet de yale smart, încuietori inteligente și smart lock pentru uși de apartament și casă. Găsești yale digitale, gateway-uri și accesorii compatibile cu ușile din România.",
 };
 
 export default async function ProductsPage() {

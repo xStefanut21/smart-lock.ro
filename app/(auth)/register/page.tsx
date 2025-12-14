@@ -181,6 +181,14 @@ export default function RegisterPage() {
               className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
               required
             />
+            <p className="mt-1 text-[11px] text-neutral-400">
+              Minim 8 caractere, cel puțin o literă mare, minim 2 cifre și 1 simbol.
+            </p>
+            {password.length > 0 && !isStrongPassword(password) && (
+              <p className="mt-1 text-[11px] text-red-400">
+                Parola introdusă nu respectă regulile de mai sus.
+              </p>
+            )}
           </label>
         </div>
 
