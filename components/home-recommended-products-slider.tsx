@@ -97,16 +97,24 @@ export function HomeRecommendedProductsSlider() {
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-base font-semibold text-white">Produse recomandate</h2>
       </div>
-      <div className="relative flex items-center gap-3">
+      <div className="relative">
         <button
           type="button"
           onClick={goPrev}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-sm text-neutral-200 hover:border-blue-500 hover:text-white"
+          className="absolute left-1 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-xs text-neutral-200 shadow-md hover:border-blue-500 hover:text-white"
           aria-label="Produse anterioare"
         >
           ‹
         </button>
-        <div className="flex-1 overflow-hidden">
+        <button
+          type="button"
+          onClick={goNext}
+          className="absolute right-1 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-xs text-neutral-200 shadow-md hover:border-blue-500 hover:text-white"
+          aria-label="Produse următoare"
+        >
+          ›
+        </button>
+        <div className="flex-1 overflow-hidden px-8 sm:px-10">
           <div
             className={`grid grid-cols-2 gap-4 md:grid-cols-4 transform transition-transform duration-300 ease-out ${
               isTransitioning
@@ -193,14 +201,6 @@ export function HomeRecommendedProductsSlider() {
                 ))}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={goNext}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-neutral-700 bg-neutral-900 text-sm text-neutral-200 hover:border-blue-500 hover:text-white"
-          aria-label="Produse următoare"
-        >
-          ›
-        </button>
       </div>
     </section>
   );
