@@ -17,8 +17,9 @@ export default function LoginPage() {
     setLoading(true);
 
     const supabase = createSupabaseBrowserClient();
+    const normalizedEmail = email.trim();
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
+      email: normalizedEmail,
       password,
     });
 

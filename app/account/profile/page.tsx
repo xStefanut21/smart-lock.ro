@@ -8,8 +8,12 @@ export default function ProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [accountType, setAccountType] = useState<"pf" | "pj">("pf");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [cui, setCui] = useState("");
+  const [regCom, setRegCom] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,13 +32,19 @@ export default function ProfilePage() {
 
       const { data } = await supabase
         .from("profiles")
-        .select("full_name, phone")
+        .select(
+          "account_type, full_name, phone, company_name, company_cui, company_reg_com"
+        )
         .eq("id", user.id)
         .maybeSingle();
 
       if (data) {
+        setAccountType((data.account_type as "pf" | "pj") || "pf");
         setFullName(data.full_name ?? "");
         setPhone(data.phone ?? "");
+        setCompanyName(data.company_name ?? "");
+        setCui(data.company_cui ?? "");
+        setRegCom(data.company_reg_com ?? "");
       }
 
       setLoading(false);
@@ -62,8 +72,12 @@ export default function ProfilePage() {
     const { error: upsertError } = await supabase.from("profiles").upsert(
       {
         id: user.id,
+        account_type: accountType,
         full_name: fullName || null,
         phone: phone || null,
+        company_name: accountType === "pj" ? companyName || null : null,
+        company_cui: accountType === "pj" ? cui || null : null,
+        company_reg_com: accountType === "pj" ? regCom || null : null,
       },
       { onConflict: "id" }
     );
@@ -103,6 +117,76 @@ export default function ProfilePage() {
             {error}
           </p>
         )}
+        <div className="space-y-3">
+          <div className="flex gap-3 text-[11px] text-neutral-300">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="account-type"
+                value="pf"
+                checked={accountType === "pf"}
+                onChange={() => setAccountType("pf")}
+                className="h-3.5 w-3.5 rounded-full border-neutral-700 bg-neutral-950 text-blue-600"
+              />
+              <span>Persoană fizică</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="account-type"
+                value="pj"
+                checked={accountType === "pj"}
+                onChange={() => setAccountType("pj")}
+                className="h-3.5 w-3.5 rounded-full border-neutral-700 bg-neutral-950 text-blue-600"
+              />
+              <span>Persoană juridică</span>
+            </label>
+          </div>
+
+          {accountType === "pj" && (
+            <div className="space-y-2 rounded-md border border-neutral-800 bg-neutral-950/60 p-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-neutral-300" htmlFor="companyName">
+                  Nume companie
+                </label>
+                <input
+                  id="companyName"
+                  type="text"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-blue-500"
+                />
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-neutral-300" htmlFor="cui">
+                    CUI
+                  </label>
+                  <input
+                    id="cui"
+                    type="text"
+                    value={cui}
+                    onChange={(e) => setCui(e.target.value)}
+                    className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-neutral-300" htmlFor="regCom">
+                    Nr. Reg. Com.
+                  </label>
+                  <input
+                    id="regCom"
+                    type="text"
+                    value={regCom}
+                    onChange={(e) => setRegCom(e.target.value)}
+                    className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="flex flex-col gap-1">
           <label className="text-neutral-300" htmlFor="fullName">
             Nume complet

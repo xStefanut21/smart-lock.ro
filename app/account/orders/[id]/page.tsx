@@ -17,6 +17,10 @@ interface Order {
   shipping_address: any | null;
   billing_address: any | null;
   comment?: string | null;
+  account_type?: "pf" | "pj" | null;
+  company_name?: string | null;
+  company_cui?: string | null;
+  company_reg_com?: string | null;
 }
 
 interface OrderItem {
@@ -57,7 +61,7 @@ export default function AccountOrderDetailPage() {
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select(
-          "id, status, total_amount, shipping_cost, vat_amount, created_at, shipping_method, payment_provider, payment_reference, shipping_address, billing_address, comment, user_id"
+          "id, status, total_amount, shipping_cost, vat_amount, created_at, shipping_method, payment_provider, payment_reference, shipping_address, billing_address, comment, user_id, account_type, company_name, company_cui, company_reg_com"
         )
         .eq("id", id)
         .maybeSingle<any>();
@@ -143,6 +147,23 @@ export default function AccountOrderDetailPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <section className="space-y-2 rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-xs">
           <h2 className="mb-1 text-sm font-semibold text-white">Date facturare</h2>
+          {order.account_type === "pj" && order.company_name && (
+            <div className="mb-2 space-y-1 rounded-md border border-neutral-800 bg-neutral-900/60 p-3 text-[11px] text-neutral-200">
+              <p className="font-medium text-neutral-100">Comandă pe persoană juridică</p>
+              <p>{order.company_name}</p>
+              {(order.company_cui || order.company_reg_com) && (
+                <p className="text-neutral-300">
+                  {order.company_cui && <span>CUI: {order.company_cui}</span>}
+                  {order.company_cui && order.company_reg_com && (
+                    <span className="mx-1">•</span>
+                  )}
+                  {order.company_reg_com && (
+                    <span>Nr. Reg. Com.: {order.company_reg_com}</span>
+                  )}
+                </p>
+              )}
+            </div>
+          )}
           <p>{billing.name || "-"}</p>
           <p className="text-neutral-300">{billing.phone || "-"}</p>
           <p className="text-neutral-300">{billing.line1 || "-"}</p>

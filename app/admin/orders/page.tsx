@@ -17,6 +17,8 @@ type AdminOrder = {
     line1?: string | null;
     city?: string | null;
   } | null;
+  account_type?: "pf" | "pj" | null;
+  company_name?: string | null;
 };
 
 export default function AdminOrdersPage() {
@@ -52,7 +54,7 @@ export default function AdminOrdersPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, status, total_amount, created_at, shipping_method, payment_provider, billing_address"
+          "id, status, total_amount, created_at, shipping_method, payment_provider, billing_address, account_type, company_name"
         )
         .order("created_at", { ascending: false });
 
@@ -121,7 +123,10 @@ export default function AdminOrdersPage() {
               {orders.map((order, index) => {
                 const billing = order.billing_address || {};
                 const customerLabel =
-                  billing.name || billing.phone || `${billing.city || ""}`;
+                  (order.account_type === "pj" && order.company_name) ||
+                  billing.name ||
+                  billing.phone ||
+                  `${billing.city || ""}`;
 
                 return (
                   <tr

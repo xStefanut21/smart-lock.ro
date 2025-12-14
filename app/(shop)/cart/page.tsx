@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 interface CartItem {
   id: string;
@@ -15,8 +16,15 @@ interface CartItem {
 export default function CartPage() {
   const router = useRouter();
   const [items, setItems] = useState<CartItem[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+
+    supabase.auth.getSession().then(({ data }) => {
+      setIsLoggedIn(!!data.session?.user);
+    });
+
     const stored = localStorage.getItem("cart");
     if (stored) {
       try {
@@ -177,11 +185,42 @@ export default function CartPage() {
             </span>
           </div>
           <button
-            onClick={() => router.push("/checkout")}
-            className="mt-6 w-full rounded-md bg-blue-600 py-2 text-sm font-medium text-white hover:bg-blue-500"
+            type="button"
+            disabled={isLoggedIn === false}
+            onClick={() => {
+              if (isLoggedIn) {
+                router.push("/checkout");
+              }
+            }}
+            className={`mt-6 w-full rounded-md py-2 text-sm font-medium transition-colors ${
+              isLoggedIn === false
+                ? "cursor-not-allowed bg-neutral-800 text-neutral-400"
+                : "bg-blue-600 text-white hover:bg-blue-500"
+            }`}
           >
-            Continuă la checkout
+            {isLoggedIn === false
+              ? "Vă rugăm să vă conectați sau să vă creați un cont pentru a putea continua la pagina de checkout."
+              : "Continuă la checkout"}
           </button>
+
+          {isLoggedIn === false && (
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-center">
+              <button
+                type="button"
+                onClick={() => router.push("/register")}
+                className="w-full rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500 sm:w-auto"
+              >
+                Creează-ți un cont
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/login")}
+                className="w-full rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500 sm:w-auto"
+              >
+                Conectează-te în contul tău
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>

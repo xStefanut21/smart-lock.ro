@@ -18,6 +18,10 @@ export default function CheckoutPage() {
   const router = useRouter();
   const [items, setItems] = useState<CartItem[]>([]);
   // date facturare
+  const [accountType, setAccountType] = useState<"pf" | "pj">("pf");
+  const [companyName, setCompanyName] = useState("");
+  const [companyCui, setCompanyCui] = useState("");
+  const [companyRegCom, setCompanyRegCom] = useState("");
   const [billingName, setBillingName] = useState("");
   const [billingPhone, setBillingPhone] = useState("");
   const [billingLine1, setBillingLine1] = useState("");
@@ -97,16 +101,22 @@ export default function CheckoutPage() {
 
       if (!user) return;
 
-      // încărcăm numele și telefonul din profil, dacă există
+      // încărcăm datele de profil (tip cont, nume, telefon, firmă), dacă există
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, phone")
+        .select(
+          "account_type, full_name, phone, company_name, company_cui, company_reg_com"
+        )
         .eq("id", user.id)
         .maybeSingle();
 
       if (profile) {
+        setAccountType((profile.account_type as "pf" | "pj") || "pf");
         if (!billingName) setBillingName(profile.full_name ?? "");
         if (!billingPhone) setBillingPhone(profile.phone ?? "");
+        setCompanyName(profile.company_name ?? "");
+        setCompanyCui(profile.company_cui ?? "");
+        setCompanyRegCom(profile.company_reg_com ?? "");
       }
 
       const { data: addr } = await supabase
@@ -250,6 +260,11 @@ export default function CheckoutPage() {
         payment_provider: paymentMethod,
         payment_reference: null,
         comment: comment || null,
+        // snapshot info despre tipul de cont și firmă, dacă este persoană juridică
+        account_type: accountType,
+        company_name: accountType === "pj" ? companyName || null : null,
+        company_cui: accountType === "pj" ? companyCui || null : null,
+        company_reg_com: accountType === "pj" ? companyRegCom || null : null,
       })
       .select("id")
       .single();
@@ -383,6 +398,23 @@ export default function CheckoutPage() {
               <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-neutral-200">
                 Date facturare
               </h2>
+              {accountType === "pj" && companyName && (
+                <div className="mb-2 space-y-1 rounded-md border border-neutral-800 bg-neutral-900/60 p-3 text-[11px] text-neutral-200">
+                  <p className="font-medium text-neutral-100">Cont persoană juridică</p>
+                  <p>{companyName}</p>
+                  {(companyCui || companyRegCom) && (
+                    <p className="text-neutral-300">
+                      {companyCui && <span>CUI: {companyCui}</span>}
+                      {companyCui && companyRegCom && <span className="mx-1">•</span>}
+                      {companyRegCom && <span>Nr. Reg. Com.: {companyRegCom}</span>}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-neutral-400">
+                    Dacă datele firmei sunt greșite, le poți actualiza din cont, la pagina
+                    "Contul meu".
+                  </p>
+                </div>
+              )}
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="flex flex-col gap-1">
                   <label className="text-neutral-300" htmlFor="billingName">
