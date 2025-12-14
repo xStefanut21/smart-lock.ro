@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AddToCartButton } from "@/components/add-to-cart-button";
 import { WishlistToggleButton } from "@/components/wishlist-toggle-button";
 
@@ -14,16 +15,31 @@ interface Product {
   brand?: string | null;
   stock?: number | null;
   color_options?: string | null;
+  category_id?: string | null;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  image_url?: string | null;
+  sort_order?: number | null;
+  is_active?: boolean | null;
 }
 
 interface Props {
   products: Product[];
+  categories: Category[];
 }
 
-export function ProductsListingClient({ products }: Props) {
+export function ProductsListingClient({ products, categories }: Props) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [productsPerPage, setProductsPerPage] = useState(18);
   const [viewType, setViewType] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
   const prices = products.map((p) => p.price);
   const globalMin = prices.length ? Math.min(...prices) : 0;
@@ -46,6 +62,35 @@ export function ProductsListingClient({ products }: Props) {
 
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
 
+  const hasActiveFilters =
+    selectedCategoryId !== null ||
+    selectedBrands.length > 0 ||
+    minPrice !== globalMin ||
+    maxPrice !== globalMax;
+
+  // sincronizăm categoria selectată cu URL-ul (?category=slug sau /products/categories/slug)
+  useEffect(() => {
+    let slug = searchParams.get("category");
+
+    // dacă nu există query, încercăm să extragem slug-ul din path: /products/categories/[slug]
+    if (!slug) {
+      const segments = pathname.split("/").filter(Boolean);
+      if (segments[0] === "products" && segments[1] === "categories" && segments[2]) {
+        slug = segments[2];
+      }
+    }
+
+    if (!slug) {
+      setSelectedCategoryId(null);
+      setCurrentPage(1);
+      return;
+    }
+
+    const category = categories.find((c) => c.slug === slug);
+    setSelectedCategoryId(category ? category.id : null);
+    setCurrentPage(1);
+  }, [searchParams, categories, pathname]);
+
   const filtered = useMemo(() => {
     return products.filter((p) => {
       const inPriceRange =
@@ -57,9 +102,12 @@ export function ProductsListingClient({ products }: Props) {
         selectedBrands.length === 0 ||
         (brandName && selectedBrands.includes(brandName));
 
-      return inPriceRange && inBrand;
+      const inCategory =
+        !selectedCategoryId || p.category_id === selectedCategoryId;
+
+      return inPriceRange && inBrand && inCategory;
     });
-  }, [products, minPrice, maxPrice, selectedBrands]);
+  }, [products, minPrice, maxPrice, selectedBrands, selectedCategoryId]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / productsPerPage));
   const page = Math.min(currentPage, totalPages);
@@ -85,12 +133,68 @@ export function ProductsListingClient({ products }: Props) {
     setMaxPrice(v);
   }
 
+  function handleResetFilters() {
+    // resetăm intervalul de preț
+    setMinPrice(globalMin);
+    setMaxPrice(globalMax);
+
+    // resetăm producătorii
+    setSelectedBrands([]);
+
+    // resetăm categoria și URL-ul legat de categorie
+    handleCategoryClick(null);
+
+    setCurrentPage(1);
+  }
+
+  function handleCategoryClick(slug: string | null) {
+    const segments = pathname.split("/").filter(Boolean);
+
+    // Dacă suntem pe /products/categories/[slug], schimbăm doar slug-ul din path,
+    // fără query param suplimentar.
+    if (segments[0] === "products" && segments[1] === "categories") {
+      if (!slug) {
+        // fără categorie specifică -> revenim la lista generală de produse
+        router.push("/products");
+        return;
+      }
+
+      router.push(`/products/categories/${encodeURIComponent(slug)}`);
+      return;
+    }
+
+    // Pentru /products (și alte variante cu query), folosim ?category=slug
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (slug) {
+      params.set("category", slug);
+    } else {
+      params.delete("category");
+    }
+
+    const query = params.toString();
+    const url = query ? `${pathname}?${query}` : pathname;
+
+    router.push(url);
+  }
+
   return (
     <div className="grid gap-6 md:grid-cols-[260px_minmax(0,1fr)]">
       {/* Sidebar filtre */}
       <aside className="space-y-4 rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-xs text-neutral-200">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-white">Preț</h2>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="rounded border border-neutral-700 px-2 py-1 text-[11px] text-neutral-300 hover:border-blue-500 hover:text-white"
+            >
+              Șterge filtre
+            </button>
+          )}
+        </div>
         <div>
-          <h2 className="mb-2 text-sm font-semibold text-white">Preț</h2>
           {prices.length === 0 ? (
             <p className="text-[11px] text-neutral-500">Nu sunt produse pentru filtrare.</p>
           ) : (
@@ -176,8 +280,39 @@ export function ProductsListingClient({ products }: Props) {
 
       {/* Listă produse + controale sus */}
       <section className="space-y-4">
+        {/* Butoane categorii vizuale */}
+        {categories && categories.length > 0 && (
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => handleCategoryClick(cat.slug)}
+                className={`flex flex-col items-center rounded-md border px-3 py-3 text-center text-xs transition hover:border-blue-500 hover:bg-neutral-900 ${
+                  selectedCategoryId === cat.id
+                    ? "border-blue-500 bg-neutral-900 text-white"
+                    : "border-neutral-800 bg-neutral-950 text-neutral-300"
+                }`}
+              >
+                <div className="mb-2 flex h-24 w-full items-center justify-center overflow-hidden rounded bg-white">
+                  {cat.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={cat.image_url}
+                      alt={cat.name}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <span className="text-[11px] text-neutral-500">Fără imagine</span>
+                  )}
+                </div>
+                <span className="text-sm font-semibold text-blue-400">{cat.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex flex-col justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-xs text-neutral-300 md:flex-row md:items-center">
-          <div>
+          <div className="flex flex-col gap-1">
             <p className="text-[11px] text-neutral-400">
               Arăt {pageItems.length} din {filtered.length} produse găsite.
             </p>

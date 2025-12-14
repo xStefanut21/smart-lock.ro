@@ -14,6 +14,12 @@ type AdminProduct = {
   brand: string | null;
   stock: number | null;
   is_active: boolean | null;
+  category_id?: string | null;
+};
+
+type Category = {
+  id: string;
+  name: string | null;
 };
 
 export default function AdminProductsPage() {
@@ -22,6 +28,7 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   function getProductImagePathFromUrl(url: string | null | undefined): string | null {
     if (!url) return null;
@@ -84,6 +91,25 @@ export default function AdminProductsPage() {
     setSuccess(`Produsul "${product.name}" a fost șters.`);
   }
 
+  async function handleChangeCategory(productId: string, newCategoryId: string) {
+    const supabase = createSupabaseBrowserClient();
+
+    const { error: updateError } = await supabase
+      .from("products")
+      .update({ category_id: newCategoryId || null })
+      .eq("id", productId);
+
+    if (updateError) {
+      setError(updateError.message || "Nu am putut actualiza categoria produsului.");
+      return;
+    }
+
+    setProducts((prev) =>
+      prev.map((p) => (p.id === productId ? { ...p, category_id: newCategoryId || null } : p))
+    );
+    setSuccess("Categoria produsului a fost actualizată.");
+  }
+
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
 
@@ -111,7 +137,7 @@ export default function AdminProductsPage() {
       const { data, error } = await supabase
         .from("products")
         .select(
-          "id, name, price, slug, short_description, image_url, brand, stock, is_active"
+          "id, name, price, slug, short_description, image_url, brand, stock, is_active, category_id"
         )
         .order("name", { ascending: true });
 
@@ -120,6 +146,14 @@ export default function AdminProductsPage() {
         setLoading(false);
         return;
       }
+      const { data: cats } = await supabase
+        .from("categories")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true });
+
+      setCategories((cats as Category[]) ?? []);
 
       setProducts(data ?? []);
       setLoading(false);
@@ -195,6 +229,7 @@ export default function AdminProductsPage() {
               <tr>
                 <th className="px-3 py-2">Produs</th>
                 <th className="px-3 py-2">Brand</th>
+                <th className="px-3 py-2">Categorie</th>
                 <th className="px-3 py-2">Preț</th>
                 <th className="px-3 py-2">Stoc</th>
                 <th className="px-3 py-2">Status</th>
@@ -229,6 +264,26 @@ export default function AdminProductsPage() {
                   </td>
                   <td className="px-3 py-2 align-top text-[11px] text-neutral-300">
                     {product.brand || "-"}
+                  </td>
+                  <td className="px-3 py-2 align-top text-[11px] text-neutral-300">
+                    {categories.length === 0 ? (
+                      <span className="text-neutral-500">-</span>
+                    ) : (
+                      <select
+                        value={product.category_id || ""}
+                        onChange={(e) =>
+                          handleChangeCategory(product.id, e.target.value)
+                        }
+                        className="max-w-[160px] rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-[11px] text-neutral-100 outline-none focus:border-red-500"
+                      >
+                        <option value="">Fără categorie</option>
+                        {categories.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name || "(fără nume)"}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </td>
                   <td className="px-3 py-2 align-top text-[11px] text-neutral-300">
                     {product.price.toLocaleString("ro-RO", {

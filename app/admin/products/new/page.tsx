@@ -4,6 +4,11 @@ import { useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+type Category = {
+  id: string;
+  name: string | null;
+};
+
 export default function AdminNewProductPage() {
   const router = useRouter();
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -21,6 +26,8 @@ export default function AdminNewProductPage() {
   const [isActive, setIsActive] = useState(true);
   const [description, setDescription] = useState("");
   const [colorOptions, setColorOptions] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryId, setCategoryId] = useState<string | "">("");
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -47,6 +54,15 @@ export default function AdminNewProductPage() {
       }
 
       setCheckingAuth(false);
+
+      const { data: cats } = await supabase
+        .from("categories")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true });
+
+      setCategories((cats as Category[]) ?? []);
     }
 
     checkAdmin();
@@ -123,6 +139,7 @@ export default function AdminNewProductPage() {
         is_active: isActive,
         description: description.trim() || null,
         color_options: colorOptions.trim() || null,
+        category_id: categoryId || null,
       })
       .select("id")
       .maybeSingle<{ id: string }>();
@@ -228,6 +245,27 @@ export default function AdminNewProductPage() {
             placeholder="ex: Yale"
             className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-red-500"
           />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-neutral-300" htmlFor="categoryId">
+            Categorie produs (pentru filtre)
+          </label>
+          <select
+            id="categoryId"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-red-500"
+          >
+            <option value="">Fără categorie</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name || "(fără nume)"}
+              </option>
+            ))}
+          </select>
+          <p className="text-[11px] text-neutral-500">
+            Categorie folosită pentru butoanele de filtre și afișarea pe pagina de produse.
+          </p>
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-neutral-300" htmlFor="shortDescription">

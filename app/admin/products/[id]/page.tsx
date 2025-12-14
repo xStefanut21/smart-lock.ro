@@ -18,6 +18,11 @@ type AdminProduct = {
   color_options?: string | null;
 };
 
+type Category = {
+  id: string;
+  name: string | null;
+};
+
 type ProductImage = {
   id: string;
   image_url: string;
@@ -48,6 +53,8 @@ export default function AdminEditProductPage() {
   const [extraImages, setExtraImages] = useState<ProductImage[]>([]);
   const [extraImageFiles, setExtraImageFiles] = useState<File[]>([]);
   const [addingImage, setAddingImage] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryId, setCategoryId] = useState<string | "">("");
 
   function getProductImagePathFromUrl(url: string | null | undefined): string | null {
     if (!url) return null;
@@ -91,7 +98,7 @@ export default function AdminEditProductPage() {
       const { data, error } = await supabase
         .from("products")
         .select(
-          "id, name, price, slug, short_description, image_url, brand, stock, is_active, description, color_options"
+          "id, name, price, slug, short_description, image_url, brand, stock, is_active, description, color_options, category_id"
         )
         .eq("id", id)
         .maybeSingle<AdminProduct>();
@@ -116,6 +123,17 @@ export default function AdminEditProductPage() {
       setIsActive(data.is_active !== false);
       setDescription(data.description ?? "");
       setColorOptions(data.color_options ?? "");
+      // @ts-ignore - category_id poate să nu fie încă pe tip
+      setCategoryId((data as any).category_id ?? "");
+
+      const { data: cats } = await supabase
+        .from("categories")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true });
+
+      setCategories((cats as Category[]) ?? []);
 
       const { data: imagesData } = await supabase
         .from("product_images")
@@ -372,6 +390,7 @@ export default function AdminEditProductPage() {
         is_active: isActive,
         description: description.trim() || null,
         color_options: colorOptions.trim() || null,
+        category_id: categoryId || null,
       })
       .eq("id", id);
 
@@ -579,6 +598,27 @@ export default function AdminEditProductPage() {
             onChange={(e) => setBrand(e.target.value)}
             className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-red-500"
           />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-neutral-300" htmlFor="categoryId">
+            Categorie produs (pentru filtre)
+          </label>
+          <select
+            id="categoryId"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-red-500"
+          >
+            <option value="">Fără categorie</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name || "(fără nume)"}
+              </option>
+            ))}
+          </select>
+          <p className="text-[11px] text-neutral-500">
+            Categorie folosită pentru butoanele de filtre și afișarea pe pagina de produse.
+          </p>
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-neutral-300" htmlFor="shortDescription">

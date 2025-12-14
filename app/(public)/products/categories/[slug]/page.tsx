@@ -5,15 +5,17 @@ import { ProductsListingClient } from "@/components/products-listing-client";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Produse",
+  title: "Produse pe categorii",
 };
 
-export default async function ProductsPage() {
+export default async function CategoryProductsPage() {
   const supabase = createSupabaseServerClient();
 
   const { data: products } = await supabase
     .from("products")
-    .select("id, name, price, short_description, slug, image_url, brand, stock, is_active, color_options, category_id")
+    .select(
+      "id, name, price, short_description, slug, image_url, brand, stock, is_active, color_options, category_id"
+    )
     .eq("is_active", true)
     .order("name", { ascending: true });
 
@@ -31,7 +33,11 @@ export default async function ProductsPage() {
           Acasă
         </a>
         <span className="mx-1">/</span>
-        <span className="text-neutral-300">Produse</span>
+        <a href="/products" className="hover:text-neutral-200">
+          Produse
+        </a>
+        <span className="mx-1">/</span>
+        <span className="text-neutral-300">Categorie</span>
       </nav>
 
       {products && products.length > 0 ? (

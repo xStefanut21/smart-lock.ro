@@ -102,6 +102,19 @@ export default function AdminDashboardPage() {
 
         <button
           type="button"
+          onClick={() => router.push("/admin/categories")}
+          className="flex flex-col items-start rounded-lg border border-neutral-800 bg-neutral-950/80 p-4 text-left text-xs hover:border-red-600 hover:bg-neutral-900"
+        >
+          <span className="mb-1 text-sm font-semibold text-white">
+            🗂️ Categorii produse
+          </span>
+          <span className="text-neutral-400">
+            Definește și gestionează categoriile vizuale folosite pentru filtrarea catalogului.
+          </span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => router.push("/admin/reviews")}
           className="flex flex-col items-start rounded-lg border border-neutral-800 bg-neutral-950/80 p-4 text-left text-xs hover:border-red-600 hover:bg-neutral-900"
         >

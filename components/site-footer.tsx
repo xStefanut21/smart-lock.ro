@@ -66,25 +66,6 @@ export function SiteFooter() {
         </section>
       )}
 
-      {/* Secțiune social media + abonare + coloane info: vizibilă peste tot */}
-      <section className="border-b border-neutral-900 bg-neutral-950/70">
-        <div className="mx-auto max-w-6xl px-4 pt-6 pb-4 text-xs text-neutral-400">
-          <div className="flex flex-col items-start justify-between gap-4 border-t border-neutral-900 pt-4 md:flex-row md:items-center">
-            <p>Ne găsești și pe social media: Instagram, Facebook, YouTube.</p>
-            <div className="flex w-full max-w-md gap-2">
-              <input
-                type="email"
-                placeholder="Adresa ta de email"
-                className="h-9 flex-1 rounded-md border border-neutral-700 bg-neutral-950 px-3 text-xs text-neutral-100 outline-none focus:border-blue-500"
-              />
-              <button className="h-9 rounded-md bg-red-600 px-4 text-xs font-medium text-white hover:bg-red-500">
-                Abonare
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section>
         <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 md:flex-row md:items-start md:justify-start md:gap-12">
           <div className="space-y-3 text-sm">

@@ -38,6 +38,51 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const romanianCounties = [
+    "Alba",
+    "Arad",
+    "Argeș",
+    "Bacău",
+    "Bihor",
+    "Bistrița-Năsăud",
+    "Botoșani",
+    "Brașov",
+    "Brăila",
+    "Buzău",
+    "Caraș-Severin",
+    "Călărași",
+    "Cluj",
+    "Constanța",
+    "Covasna",
+    "Dâmbovița",
+    "Dolj",
+    "Galați",
+    "Giurgiu",
+    "Gorj",
+    "Harghita",
+    "Hunedoara",
+    "Ialomița",
+    "Iași",
+    "Ilfov",
+    "Maramureș",
+    "Mehedinți",
+    "Mureș",
+    "Neamț",
+    "Olt",
+    "Prahova",
+    "Satu Mare",
+    "Sălaj",
+    "Sibiu",
+    "Suceava",
+    "Teleorman",
+    "Timiș",
+    "Tulcea",
+    "Vaslui",
+    "Vâlcea",
+    "Vrancea",
+    "București",
+  ];
+
   useEffect(() => {
     const stored = localStorage.getItem("cart");
     if (stored) {
@@ -121,10 +166,42 @@ export default function CheckoutPage() {
     syncCart(items.filter((item) => item.id !== id));
   }
 
-  // prețurile din cart sunt în RON; total, TVA și transportul sunt exprimate direct în RON
+  function sanitizePostal(value: string): string {
+    // păstrăm doar cifre și limităm la 6 caractere (format cod poștal RO)
+    return value.replace(/\D/g, "").slice(0, 6);
+  }
+
+  // prețurile din cart sunt în RON; total și transportul sunt exprimate direct în RON
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shippingCost = 20; // 20 RON
-  const vatAmount = total * 0.19;
+
+  function computeShippingCost(): number {
+    // determinăm județul destinației de livrare
+    const rawCounty = (shippingSameAsBilling ? billingCounty : shippingCounty) || "";
+    const normalized = rawCounty.trim().toLowerCase();
+
+    if (!normalized) {
+      // dacă nu avem încă județ completat, folosim tariful standard
+      return 25;
+    }
+
+    // București / București sector etc.
+    const isBucharest =
+      normalized === "bucuresti" ||
+      normalized === "bucurești" ||
+      normalized.startsWith("bucuresti ") ||
+      normalized.startsWith("bucurești ");
+
+    const isIlfov = normalized === "ilfov";
+
+    if (isBucharest || isIlfov) {
+      return 0;
+    }
+
+    // restul țării – tarif fix (ajustabil)
+    return 25;
+  }
+
+  const shippingCost = computeShippingCost();
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -166,7 +243,7 @@ export default function CheckoutPage() {
         user_id: user.id,
         total_amount: total + shippingCost,
         shipping_cost: shippingCost,
-        vat_amount: vatAmount,
+        vat_amount: 0,
         shipping_address: shippingAddressPayload,
         billing_address: billingAddressPayload,
         shipping_method: shippingMethod,
@@ -363,13 +440,19 @@ export default function CheckoutPage() {
                   <label className="text-neutral-300" htmlFor="billingCounty">
                     Județ
                   </label>
-                  <input
+                  <select
                     id="billingCounty"
-                    type="text"
                     value={billingCounty}
                     onChange={(e) => setBillingCounty(e.target.value)}
                     className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-blue-500"
-                  />
+                  >
+                    <option value="">Selectează județul</option>
+                    {romanianCounties.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-neutral-300" htmlFor="billingPostal">
@@ -378,8 +461,10 @@ export default function CheckoutPage() {
                   <input
                     id="billingPostal"
                     type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
                     value={billingPostal}
-                    onChange={(e) => setBillingPostal(e.target.value)}
+                    onChange={(e) => setBillingPostal(sanitizePostal(e.target.value))}
                     className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-blue-500"
                   />
                 </div>
@@ -432,13 +517,19 @@ export default function CheckoutPage() {
                     <label className="text-neutral-300" htmlFor="shippingCounty">
                       Județ
                     </label>
-                    <input
+                    <select
                       id="shippingCounty"
-                      type="text"
                       value={shippingCounty}
                       onChange={(e) => setShippingCounty(e.target.value)}
                       className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-blue-500"
-                    />
+                    >
+                      <option value="">Selectează județul</option>
+                      {romanianCounties.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-neutral-300" htmlFor="shippingPostal">
@@ -447,8 +538,10 @@ export default function CheckoutPage() {
                     <input
                       id="shippingPostal"
                       type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]{6}"
                       value={shippingPostal}
-                      onChange={(e) => setShippingPostal(e.target.value)}
+                      onChange={(e) => setShippingPostal(sanitizePostal(e.target.value))}
                       className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-blue-500"
                     />
                   </div>
@@ -552,7 +645,7 @@ export default function CheckoutPage() {
                   className="mt-0.5 h-3.5 w-3.5 rounded-full border-neutral-700 bg-neutral-950 text-blue-600"
                 />
                 <span>
-                  Curier standard (24-48h) – cost fix {" "}
+                  Curier standard (24-48h) – cost calculat după adresa de livrare: {" "}
                   {new Intl.NumberFormat("ro-RO", {
                     style: "currency",
                     currency: "RON",
@@ -591,15 +684,6 @@ export default function CheckoutPage() {
                       style: "currency",
                       currency: "RON",
                     }).format(total)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>TVA (19%)</span>
-                  <span>
-                    {new Intl.NumberFormat("ro-RO", {
-                      style: "currency",
-                      currency: "RON",
-                    }).format(vatAmount)}
                   </span>
                 </div>
                 <div className="flex justify-between">
