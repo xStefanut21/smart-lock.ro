@@ -71,7 +71,7 @@ export function SiteFooter() {
           <div className="space-y-3 text-sm">
             <a href="/" className="inline-flex items-center">
               <Image
-                src="/logo-smart-lock-v3.png"
+                src="/logo2.png"
                 alt="Smart-Lock.ro"
                 width={220}
                 height={72}
