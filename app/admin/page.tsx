@@ -63,6 +63,19 @@ export default function AdminDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <button
           type="button"
+          onClick={() => router.push("/admin/users")}
+          className="flex flex-col items-start rounded-lg border border-neutral-800 bg-neutral-950/80 p-4 text-left text-xs hover:border-red-600 hover:bg-neutral-900"
+        >
+          <span className="mb-1 text-sm font-semibold text-white">
+            👤 Administrare utilizatori
+          </span>
+          <span className="text-neutral-400">
+            Acordă sau revocă drepturi de administrator pentru conturi existente.
+          </span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => router.push("/admin/products")}
           className="flex flex-col items-start rounded-lg border border-neutral-800 bg-neutral-950/80 p-4 text-left text-xs hover:border-red-600 hover:bg-neutral-900"
         >
