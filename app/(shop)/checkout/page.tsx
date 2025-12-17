@@ -293,6 +293,30 @@ export default function CheckoutPage() {
       return;
     }
 
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      if (accessToken) {
+        const resp = await fetch("/api/order-notification", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ orderId: order.id }),
+        });
+
+        if (!resp.ok) {
+          const body = await resp.text().catch(() => "");
+          // eslint-disable-next-line no-console
+          console.warn("order-notification failed", resp.status, body);
+        }
+      }
+    } catch {
+      // ignorăm erorile de notificare email; comanda rămâne plasată
+    }
+
     // actualizăm/salvăm profilul cu nume și telefon din facturare
     await supabase
       .from("profiles")
