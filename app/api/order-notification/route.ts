@@ -155,7 +155,11 @@ export async function POST(req: Request) {
 
     const subject = `Comandă nouă ${order.id} – Smart-Lock.ro`;
 
+    const customerEmail = user.email || "";
+    const customerSubject = `Confirmare comandă ${order.id} – Smart Lock`;
+
     const adminOrderUrl = `${baseUrl}/admin/orders/${encodeURIComponent(order.id)}`;
+    const orderConfirmationUrl = `${baseUrl}/order-confirmation/${encodeURIComponent(order.id)}`;
     const logoUrl = `${baseUrl}/logo2.png`;
 
     const esc = (s: any) =>
@@ -296,37 +300,196 @@ export async function POST(req: Request) {
         </div>
       </div>`;
 
-    const resendResp = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: emailFrom,
-        to: [adminEmail],
-        subject,
-        text,
-        html,
-        ...(replyTo ? { reply_to: replyTo } : {}),
-      }),
-    });
+    const customerHtml = `
+      <div style="margin:0;padding:0;background:#0b0f19;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;">
+        <div style="max-width:680px;margin:0 auto;padding:24px 12px;">
+          <div style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #1118271a;">
+            <div style="padding:18px 20px;background:#0b0f19;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <img src="${logoUrl}" alt="Smart Lock" width="170" style="display:block;max-width:170px;height:auto;" />
+                <div style="margin-left:auto;text-align:right;">
+                  <div style="color:#e2e8f0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Confirmare comandă</div>
+                  <div style="color:#ffffff;font-size:14px;font-weight:700;">${esc(order.id)}</div>
+                </div>
+              </div>
+            </div>
 
-    if (!resendResp.ok) {
-      const errText = await resendResp.text().catch(() => "");
-      console.error("[order-notification] Resend send failed", {
-        status: resendResp.status,
-        body: errText,
+            <div style="padding:20px;">
+              <div style="padding:14px;border:1px solid #eef2f7;border-radius:12px;background:#f8fafc;">
+                <div style="font-weight:800;color:#0f172a;">Comanda ta a fost plasată cu succes.</div>
+                <div style="color:#475569;font-size:13px;margin-top:6px;">
+                  Îți mulțumim! Revenim în cel mai scurt timp pentru confirmare și procesare.
+                </div>
+              </div>
+
+              <div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:12px;">
+                <div style="flex:1;min-width:220px;padding:14px;border:1px solid #eef2f7;border-radius:12px;background:#fff;">
+                  <div style="color:#64748b;font-size:12px;">Total</div>
+                  <div style="font-size:22px;font-weight:800;color:#0f172a;">${esc(
+                    formatMoney(order.total_amount)
+                  )}</div>
+                  <div style="color:#475569;font-size:12px;margin-top:6px;">Transport: ${esc(
+                    formatMoney(order.shipping_cost || 0)
+                  )}</div>
+                </div>
+                <div style="flex:1;min-width:220px;padding:14px;border:1px solid #eef2f7;border-radius:12px;background:#fff;">
+                  <div style="color:#64748b;font-size:12px;">Livrare</div>
+                  <div style="font-size:14px;font-weight:700;color:#0f172a;">${esc(
+                    order.shipping_method || ""
+                  )}</div>
+                  <div style="color:#64748b;font-size:12px;margin-top:10px;">Plată</div>
+                  <div style="font-size:14px;font-weight:700;color:#0f172a;">${esc(
+                    order.payment_provider || ""
+                  )}</div>
+                </div>
+              </div>
+
+              <div style="margin-top:16px;">
+                <div style="font-size:14px;font-weight:800;color:#0f172a;margin-bottom:8px;">Produse</div>
+                <div style="border:1px solid #eef2f7;border-radius:12px;overflow:hidden;">
+                  <table style="border-collapse:collapse;width:100%;font-size:13px;color:#0f172a;">
+                    <thead>
+                      <tr style="background:#f1f5f9;">
+                        <th style="padding:10px 12px;text-align:left;">Produs</th>
+                        <th style="padding:10px 12px;text-align:center;white-space:nowrap;">Cant.</th>
+                        <th style="padding:10px 12px;text-align:right;white-space:nowrap;">Preț</th>
+                        <th style="padding:10px 12px;text-align:right;white-space:nowrap;">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${itemsRowsHtml}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:12px;">
+                <div style="flex:1;min-width:260px;padding:14px;border:1px solid #eef2f7;border-radius:12px;background:#fff;">
+                  <div style="font-weight:800;color:#0f172a;margin-bottom:6px;">Facturare</div>
+                  <div style="color:#0f172a;">${esc(billing?.name || "")}</div>
+                  <div style="color:#475569;">${esc(billing?.phone || "")}</div>
+                  <div style="color:#475569;">${esc(billingLine)}</div>
+                </div>
+                <div style="flex:1;min-width:260px;padding:14px;border:1px solid #eef2f7;border-radius:12px;background:#fff;">
+                  <div style="font-weight:800;color:#0f172a;margin-bottom:6px;">Livrare</div>
+                  <div style="color:#0f172a;">${esc(shipping?.name || "")}</div>
+                  <div style="color:#475569;">${esc(shipping?.phone || "")}</div>
+                  <div style="color:#475569;">${esc(shippingLine)}</div>
+                </div>
+              </div>
+
+              <div style="margin-top:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                <a href="${orderConfirmationUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700;font-size:13px;padding:10px 14px;border-radius:10px;">Vezi confirmarea comenzii</a>
+                <div style="color:#64748b;font-size:12px;">${createdAt ? `Plasată la: ${esc(createdAt)}` : ""}</div>
+              </div>
+
+              <div style="margin-top:16px;padding:14px;border:1px solid #eef2f7;border-radius:12px;background:#f8fafc;">
+                <div style="font-weight:800;color:#0f172a;margin-bottom:6px;">Ai nevoie de ajutor?</div>
+                <div style="color:#475569;font-size:13px;">
+                  Ne poți contacta la <a href="mailto:${esc(adminEmail)}" style="color:#2563eb;text-decoration:none;">${esc(
+                    adminEmail
+                  )}</a> sau telefon <strong style="color:#0f172a;">0741119449</strong>.
+                </div>
+              </div>
+            </div>
+
+            <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid #eef2f7;color:#64748b;font-size:12px;">
+              Smart Lock • ${esc(baseUrl)}
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    const customerText = [
+      `Confirmare comandă: ${order.id}`,
+      createdAt ? `Data: ${createdAt}` : "",
+      `Total: ${formatMoney(order.total_amount)}`,
+      `Transport: ${formatMoney(order.shipping_cost || 0)}`,
+      `Metodă livrare: ${order.shipping_method || ""}`,
+      `Plată: ${order.payment_provider || ""}`,
+      "",
+      "Produse:",
+      ...lines,
+      "",
+      `Facturare: ${billing?.name || ""} | ${billing?.phone || ""} | ${billing?.line1 || ""}, ${billing?.city || ""} ${billing?.county || ""} ${billing?.postal_code || ""}`,
+      `Livrare: ${shipping?.name || ""} | ${shipping?.phone || ""} | ${shipping?.line1 || ""}, ${shipping?.city || ""} ${shipping?.county || ""} ${shipping?.postal_code || ""}`,
+      "",
+      `Vezi confirmarea: ${orderConfirmationUrl}`,
+      "",
+      `Suport: ${adminEmail} | 0741119449`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    async function sendEmail(payload: any) {
+      const resp = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      const bodyText = await resp.text().catch(() => "");
+      return { ok: resp.ok, status: resp.status, bodyText };
+    }
+
+    const adminPayload = {
+      from: emailFrom,
+      to: [adminEmail],
+      subject,
+      text,
+      html,
+      ...(replyTo ? { reply_to: replyTo } : {}),
+    };
+
+    const customerPayload = customerEmail
+      ? {
+          from: emailFrom,
+          to: [customerEmail],
+          subject: customerSubject,
+          text: customerText,
+          html: customerHtml,
+          ...(replyTo ? { reply_to: replyTo } : {}),
+        }
+      : null;
+
+    const [adminSend, customerSend] = await Promise.all([
+      sendEmail(adminPayload),
+      customerPayload ? sendEmail(customerPayload) : Promise.resolve(null),
+    ]);
+
+    if (!adminSend.ok) {
+      console.error("[order-notification] Admin email send failed", {
+        status: adminSend.status,
+        body: adminSend.bodyText,
       });
       return NextResponse.json(
-        { error: "Email send failed", details: errText },
+        { error: "Email send failed", details: adminSend.bodyText },
         { status: 502 }
       );
     }
 
-    console.log("[order-notification] Email sent", { orderId, adminEmail });
+    if (customerSend && !customerSend.ok) {
+      console.error("[order-notification] Customer email send failed", {
+        status: customerSend.status,
+        body: customerSend.bodyText,
+      });
+    }
 
-    return NextResponse.json({ ok: true });
+    console.log("[order-notification] Email sent", {
+      orderId,
+      adminEmail,
+      customerEmail: customerEmail || null,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      admin: { ok: adminSend.ok, status: adminSend.status },
+      customer: customerSend
+        ? { ok: customerSend.ok, status: customerSend.status }
+        : null,
+    });
   } catch (e: any) {
     console.error("[order-notification] Unexpected error", e);
     return NextResponse.json(
