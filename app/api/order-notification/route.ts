@@ -95,7 +95,7 @@ export async function POST(req: Request) {
 
     const { data: items } = await adminSupabase
       .from("order_items")
-      .select("quantity, unit_price, color, products(name)")
+      .select("quantity, unit_price, color, products(name, slug, image_url)")
       .eq("order_id", orderId);
 
     const formatMoney = (value: number) =>
@@ -107,20 +107,37 @@ export async function POST(req: Request) {
     const mappedLines = (items || []).map((row: any) => {
       const name = row.products?.name ?? "Produs";
       const color = row.color ? ` (${row.color})` : "";
+      const slug = row.products?.slug ?? null;
+      const imageUrl = row.products?.image_url ?? null;
       const qty = typeof row.quantity === "number" ? row.quantity : 0;
       const unit = typeof row.unit_price === "number" ? row.unit_price : 0;
       const lineTotal = qty * unit;
+
+      const productUrl = slug
+        ? `${baseUrl}/products/${encodeURIComponent(slug)}`
+        : null;
+
+      const absoluteImageUrl =
+        typeof imageUrl === "string" && imageUrl.trim()
+          ? imageUrl.startsWith("http")
+            ? imageUrl
+            : `${baseUrl}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`
+          : null;
+
       return {
         name: `${name}${color}`,
+        productUrl,
+        imageUrl: absoluteImageUrl,
         qty,
         unit,
         total: lineTotal,
       };
     });
 
-    const lines = mappedLines.map(
-      (l) => `- ${l.name} x${l.qty} = ${formatMoney(l.total)}`
-    );
+    const lines = mappedLines.map((l) => {
+      const suffix = l.productUrl ? ` (${l.productUrl})` : "";
+      return `- ${l.name} x${l.qty} = ${formatMoney(l.total)}${suffix}`;
+    });
 
     const createdAt = order.created_at
       ? new Date(order.created_at).toLocaleString("ro-RO")
@@ -177,9 +194,34 @@ export async function POST(req: Request) {
       .map(
         (l) => `
           <tr>
-            <td style="padding:10px 12px;border-top:1px solid #eef2f7;">${esc(
-              l.name
-            )}</td>
+            <td style="padding:10px 12px;border-top:1px solid #eef2f7;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                <tr>
+                  <td style="vertical-align:middle;padding-right:10px;">
+                    ${
+                      l.imageUrl && l.productUrl
+                        ? `<a href="${esc(l.productUrl)}" style="text-decoration:none;display:inline-block;">
+                             <img src="${esc(l.imageUrl)}" alt="${esc(l.name)}" width="44" height="44" style="display:block;width:44px;height:44px;object-fit:contain;border-radius:8px;border:1px solid #eef2f7;background:#ffffff;" />
+                           </a>`
+                        : l.imageUrl
+                          ? `<img src="${esc(l.imageUrl)}" alt="${esc(l.name)}" width="44" height="44" style="display:block;width:44px;height:44px;object-fit:contain;border-radius:8px;border:1px solid #eef2f7;background:#ffffff;" />`
+                          : ""
+                    }
+                  </td>
+                  <td style="vertical-align:middle;">
+                    ${
+                      l.productUrl
+                        ? `<a href="${esc(l.productUrl)}" style="color:#0f172a;text-decoration:none;font-weight:600;">${esc(
+                            l.name
+                          )}</a>`
+                        : `<span style="color:#0f172a;font-weight:600;">${esc(
+                            l.name
+                          )}</span>`
+                    }
+                  </td>
+                </tr>
+              </table>
+            </td>
             <td style="padding:10px 12px;border-top:1px solid #eef2f7;text-align:center;">${esc(
               l.qty
             )}</td>
@@ -206,20 +248,40 @@ export async function POST(req: Request) {
         : "";
 
     const html = `
-      <div style="margin:0;padding:0;background:#0b0f19;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;">
-        <div style="max-width:680px;margin:0 auto;padding:24px 12px;">
-          <div style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #1118271a;">
-            <div style="padding:18px 20px;background:#0b0f19;">
-              <div style="display:flex;align-items:center;gap:12px;">
-                <img src="${logoUrl}" alt="Smart Lock" width="170" style="display:block;max-width:170px;height:auto;" />
-                <div style="margin-left:auto;text-align:right;">
-                  <div style="color:#e2e8f0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Comandă nouă</div>
-                  <div style="color:#ffffff;font-size:14px;font-weight:700;">${esc(order.id)}</div>
-                </div>
-              </div>
-            </div>
-
-            <div style="padding:20px;">
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width,initial-scale=1" />
+          <meta name="color-scheme" content="light" />
+          <meta name="supported-color-schemes" content="light" />
+          <title>${esc(subject)}</title>
+        </head>
+        <body style="margin:0;padding:0;background:#0b0f19;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#0b0f19" style="background:#0b0f19;">
+            <tr>
+              <td align="center" style="padding:24px 12px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="680" style="max-width:680px;width:100%;">
+                  <tr>
+                    <td style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid rgba(17,24,39,0.10);">
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                        <tr>
+                          <td bgcolor="#0b0f19" style="background:#0b0f19;padding:18px 20px;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                              <tr>
+                                <td align="left" valign="middle">
+                                  <img src="${logoUrl}" alt="Smart Lock" width="170" style="display:block;max-width:170px;height:auto;" />
+                                </td>
+                                <td align="right" valign="middle" style="text-align:right;">
+                                  <div style="color:#e2e8f0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Comandă nouă</div>
+                                  <div style="color:#ffffff;font-size:14px;font-weight:700;">${esc(order.id)}</div>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding:20px;">
               <div style="display:flex;flex-wrap:wrap;gap:12px;">
                 <div style="flex:1;min-width:220px;padding:14px;border:1px solid #eef2f7;border-radius:12px;background:#f8fafc;">
                   <div style="color:#64748b;font-size:12px;">Total</div>
@@ -291,30 +353,58 @@ export async function POST(req: Request) {
                 <a href="${adminOrderUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700;font-size:13px;padding:10px 14px;border-radius:10px;">Vezi comanda în admin</a>
                 <div style="color:#64748b;font-size:12px;">${createdAt ? `Plasată la: ${esc(createdAt)}` : ""}</div>
               </div>
-            </div>
-
-            <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid #eef2f7;color:#64748b;font-size:12px;">
-              Notificare automată Smart Lock • ${esc(baseUrl)}
-            </div>
-          </div>
-        </div>
-      </div>`;
+                          </td>
+                        </tr>
+                        <tr>
+                          <td bgcolor="#f8fafc" style="background:#f8fafc;padding:14px 20px;border-top:1px solid #eef2f7;color:#64748b;font-size:12px;">
+                            Notificare automată Smart Lock • ${esc(baseUrl)}
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>`;
 
     const customerHtml = `
-      <div style="margin:0;padding:0;background:#0b0f19;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;">
-        <div style="max-width:680px;margin:0 auto;padding:24px 12px;">
-          <div style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #1118271a;">
-            <div style="padding:18px 20px;background:#0b0f19;">
-              <div style="display:flex;align-items:center;gap:12px;">
-                <img src="${logoUrl}" alt="Smart Lock" width="170" style="display:block;max-width:170px;height:auto;" />
-                <div style="margin-left:auto;text-align:right;">
-                  <div style="color:#e2e8f0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Confirmare comandă</div>
-                  <div style="color:#ffffff;font-size:14px;font-weight:700;">${esc(order.id)}</div>
-                </div>
-              </div>
-            </div>
-
-            <div style="padding:20px;">
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width,initial-scale=1" />
+          <meta name="color-scheme" content="light" />
+          <meta name="supported-color-schemes" content="light" />
+          <title>${esc(customerSubject)}</title>
+        </head>
+        <body style="margin:0;padding:0;background:#0b0f19;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#0b0f19" style="background:#0b0f19;">
+            <tr>
+              <td align="center" style="padding:24px 12px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="680" style="max-width:680px;width:100%;">
+                  <tr>
+                    <td style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid rgba(17,24,39,0.10);">
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                        <tr>
+                          <td bgcolor="#0b0f19" style="background:#0b0f19;padding:18px 20px;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                              <tr>
+                                <td align="left" valign="middle">
+                                  <img src="${logoUrl}" alt="Smart Lock" width="170" style="display:block;max-width:170px;height:auto;" />
+                                </td>
+                                <td align="right" valign="middle" style="text-align:right;">
+                                  <div style="color:#e2e8f0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">Confirmare comandă</div>
+                                  <div style="color:#ffffff;font-size:14px;font-weight:700;">${esc(order.id)}</div>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding:20px;">
               <div style="padding:14px;border:1px solid #eef2f7;border-radius:12px;background:#f8fafc;">
                 <div style="font-weight:800;color:#0f172a;">Comanda ta a fost plasată cu succes.</div>
                 <div style="color:#475569;font-size:13px;margin-top:6px;">
@@ -391,14 +481,22 @@ export async function POST(req: Request) {
                   )}</a> sau telefon <strong style="color:#0f172a;">0741119449</strong>.
                 </div>
               </div>
-            </div>
-
-            <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid #eef2f7;color:#64748b;font-size:12px;">
-              Smart Lock • ${esc(baseUrl)}
-            </div>
-          </div>
-        </div>
-      </div>`;
+                          </td>
+                        </tr>
+                        <tr>
+                          <td bgcolor="#f8fafc" style="background:#f8fafc;padding:14px 20px;border-top:1px solid #eef2f7;color:#64748b;font-size:12px;">
+                            Smart Lock • ${esc(baseUrl)}
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>`;
 
     const customerText = [
       `Confirmare comandă: ${order.id}`,

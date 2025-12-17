@@ -22,6 +22,7 @@ export const metadata: Metadata = {
   },
   description:
     "Smart-Lock.ro este magazin online specializat în yale smart, încuietori inteligente și smart lock pentru uși de apartament și casă în România. Găsești yale digitale, gateway-uri și accesorii, cu consultanță, montaj și plată la livrare.",
+  themeColor: "#000000",
   openGraph: {
     siteName: "Smart Lock",
   },
@@ -33,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ro">
+    <html lang="ro" className="bg-black">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
       >
