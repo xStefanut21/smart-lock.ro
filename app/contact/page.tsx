@@ -4,10 +4,45 @@ import { FormEvent, useState } from "react";
 
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSubmitted(false);
+
+    const res = await fetch("/api/contact", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: name.trim(),
+        email: email.trim(),
+        subject: subject.trim(),
+        message: message.trim(),
+      }),
+    });
+
+    const data = (await res.json().catch(() => null)) as any;
+    setLoading(false);
+
+    if (!res.ok) {
+      setError(data?.error || "Nu am putut trimite mesajul. Încearcă din nou.");
+      return;
+    }
+
     setSubmitted(true);
+    setName("");
+    setEmail("");
+    setSubject("");
+    setMessage("");
   }
 
   return (
@@ -41,6 +76,11 @@ export default function ContactPage() {
         onSubmit={handleSubmit}
         className="space-y-4 rounded-xl border border-neutral-800 bg-neutral-950/70 p-6"
       >
+        {error && (
+          <p className="rounded-md border border-red-700 bg-red-950/40 px-3 py-2 text-xs text-red-300">
+            {error}
+          </p>
+        )}
         {submitted && (
           <p className="rounded-md border border-green-700 bg-green-950/40 px-3 py-2 text-xs text-green-300">
             Mesajul a fost trimis. Vom reveni în cel mai scurt timp.
@@ -55,6 +95,8 @@ export default function ContactPage() {
               id="name"
               type="text"
               required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 outline-none focus:border-blue-500"
             />
           </div>
@@ -66,6 +108,8 @@ export default function ContactPage() {
               id="email"
               type="email"
               required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 outline-none focus:border-blue-500"
             />
           </div>
@@ -77,6 +121,8 @@ export default function ContactPage() {
           <input
             id="subject"
             type="text"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
             className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 outline-none focus:border-blue-500"
           />
         </div>
@@ -87,14 +133,17 @@ export default function ContactPage() {
           <textarea
             id="message"
             required
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
             className="min-h-[140px] rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-xs text-neutral-100 outline-none focus:border-blue-500"
           />
         </div>
         <button
           type="submit"
-          className="mt-2 rounded-md bg-red-600 px-6 py-2 text-xs font-medium text-white hover:bg-red-500"
+          disabled={loading}
+          className="mt-2 rounded-md bg-red-600 px-6 py-2 text-xs font-medium text-white hover:bg-red-500 disabled:opacity-60"
         >
-          Trimite
+          {loading ? "Se trimite..." : "Trimite"}
         </button>
       </form>
     </div>

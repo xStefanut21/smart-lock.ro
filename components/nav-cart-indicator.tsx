@@ -50,11 +50,9 @@ export function NavCartIndicator() {
         <circle cx="10" cy="19" r="1.2" />
         <circle cx="16" cy="19" r="1.2" />
       </svg>
-      {count > 0 && (
-        <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
-          {count}
-        </span>
-      )}
+      <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+        {count}
+      </span>
     </button>
   );
 }

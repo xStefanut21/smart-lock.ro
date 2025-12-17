@@ -40,6 +40,7 @@ export function ProductsListingClient({ products, categories }: Props) {
   const [viewType, setViewType] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [sortByPrice, setSortByPrice] = useState<"none" | "asc" | "desc">("none");
 
   const prices = products.map((p) => p.price);
   const globalMin = prices.length ? Math.min(...prices) : 0;
@@ -109,10 +110,22 @@ export function ProductsListingClient({ products, categories }: Props) {
     });
   }, [products, minPrice, maxPrice, selectedBrands, selectedCategoryId]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / productsPerPage));
+  const filteredAndSorted = useMemo(() => {
+    if (sortByPrice === "none") return filtered;
+
+    const copy = [...filtered];
+    copy.sort((a, b) => {
+      const ap = typeof a.price === "number" ? a.price : 0;
+      const bp = typeof b.price === "number" ? b.price : 0;
+      return sortByPrice === "asc" ? ap - bp : bp - ap;
+    });
+    return copy;
+  }, [filtered, sortByPrice]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAndSorted.length / productsPerPage));
   const page = Math.min(currentPage, totalPages);
   const start = (page - 1) * productsPerPage;
-  const pageItems = filtered.slice(start, start + productsPerPage);
+  const pageItems = filteredAndSorted.slice(start, start + productsPerPage);
 
   function toggleBrand(brand: string) {
     setCurrentPage(1);
@@ -294,10 +307,25 @@ export function ProductsListingClient({ products, categories }: Props) {
         <div className="flex flex-col justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 text-xs text-neutral-300 md:flex-row md:items-center">
           <div className="flex flex-col gap-1">
             <p className="text-[11px] text-neutral-400">
-              Arăt {pageItems.length} din {filtered.length} produse găsite.
+              Arăt {pageItems.length} din {filteredAndSorted.length} produse găsite.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-neutral-400">Sortează</span>
+              <select
+                value={sortByPrice}
+                onChange={(e) => {
+                  setSortByPrice(e.target.value as "none" | "asc" | "desc");
+                  setCurrentPage(1);
+                }}
+                className="h-8 rounded border border-neutral-700 bg-neutral-900 px-2 text-xs text-neutral-100 outline-none focus:border-blue-500"
+              >
+                <option value="none">Implicit</option>
+                <option value="asc">Preț crescător</option>
+                <option value="desc">Preț descrescător</option>
+              </select>
+            </div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] text-neutral-400">Produse pe pagină</span>
               <select

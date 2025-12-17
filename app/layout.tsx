@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SiteFooter } from "@/components/site-footer";
@@ -22,10 +22,13 @@ export const metadata: Metadata = {
   },
   description:
     "Smart-Lock.ro este magazin online specializat în yale smart, încuietori inteligente și smart lock pentru uși de apartament și casă în România. Găsești yale digitale, gateway-uri și accesorii, cu consultanță, montaj și plată la livrare.",
-  themeColor: "#000000",
   openGraph: {
     siteName: "Smart Lock",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
 };
 
 export default function RootLayout({
