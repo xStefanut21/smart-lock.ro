@@ -75,7 +75,7 @@ export default function CumCumperiPage() {
           <p className="text-neutral-300">
             Pentru situații speciale (proiecte, comenzi de volum, integrare în
             soluții existente), ne poți trimite un e-mail la
-            <span className="font-semibold"> contact@smart-lock.ro</span> cu:
+            <span className="font-semibold"> stefan.prodan@monvelli.ro</span> cu:
           </p>
           <ul className="list-disc space-y-1 pl-5 text-neutral-300">
             <li>Modelele de yale smart care te interesează;</li>

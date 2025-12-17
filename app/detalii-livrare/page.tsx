@@ -103,7 +103,7 @@ export default function DetaliiLivrarePage() {
             <h3 className="text-sm font-semibold text-white">B. Anomalia constatată în lipsa Curierului</h3>
             <ul className="list-disc space-y-1 pl-5 text-neutral-300">
               <li>
-                <span className="font-semibold">Semnalați incidentul:</span> Contactați Serviciul Clienți smart-lock.ro (Tel: <span className="font-semibold">0741119449</span> sau E-mail: <span className="font-semibold">contact@smart-lock.ro</span>).
+                <span className="font-semibold">Semnalați incidentul:</span> Contactați Serviciul Clienți smart-lock.ro (Tel: <span className="font-semibold">0741119449</span> sau E-mail: <span className="font-semibold">stefan.prodan@monvelli.ro</span>).
               </li>
               <li>
                 <span className="font-semibold">Termen limită:</span> Notificarea pagubelor sau lipsurilor trebuie făcută în termen de maximum 3 zile lucrătoare de la data livrării.

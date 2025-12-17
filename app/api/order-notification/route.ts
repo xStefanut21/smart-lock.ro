@@ -249,7 +249,7 @@ export async function POST(req: Request) {
 
     const html = `
       <!doctype html>
-      <html>
+      <html style="background:#0b0f19;">
         <head>
           <meta charset="utf-8" />
           <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -257,10 +257,10 @@ export async function POST(req: Request) {
           <meta name="supported-color-schemes" content="light" />
           <title>${esc(subject)}</title>
         </head>
-        <body style="margin:0;padding:0;background:#0b0f19;">
+        <body bgcolor="#0b0f19" style="margin:0;padding:0;background:#0b0f19;background-color:#0b0f19 !important;">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#0b0f19" style="background:#0b0f19;">
             <tr>
-              <td align="center" style="padding:24px 12px;">
+              <td align="center" bgcolor="#0b0f19" style="padding:24px 12px;background:#0b0f19;background-color:#0b0f19 !important;">
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="680" style="max-width:680px;width:100%;">
                   <tr>
                     <td style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid rgba(17,24,39,0.10);">

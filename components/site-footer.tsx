@@ -85,7 +85,7 @@ export function SiteFooter() {
               </li>
               <li className="flex items-center gap-2">
                 <span>✉️</span>
-                <span>contact@smart-lock.ro</span>
+                <span>stefan.prodan@monvelli.ro</span>
               </li>
               <li className="flex items-center gap-2">
                 <span>⏰</span>

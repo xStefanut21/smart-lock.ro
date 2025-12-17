@@ -57,7 +57,7 @@ export default function RootLayout({
                 name: 'Smart-Lock.ro',
                 url: 'https://smart-lock.ro',
                 telephone: '+40 741 119 449',
-                email: 'contact@smart-lock.ro',
+                email: 'stefan.prodan@monvelli.ro',
                 address: {
                   '@type': 'PostalAddress',
                   addressCountry: 'RO',

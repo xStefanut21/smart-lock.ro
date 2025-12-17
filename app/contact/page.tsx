@@ -11,15 +11,19 @@ export default function ContactPage() {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [honeypot, setHoneypot] = useState("");
-  const [startedAt, setStartedAt] = useState<number>(() => Date.now());
-  const [captchaA, setCaptchaA] = useState<number>(() => 1 + Math.floor(Math.random() * 9));
-  const [captchaB, setCaptchaB] = useState<number>(() => 1 + Math.floor(Math.random() * 9));
+  const [startedAt, setStartedAt] = useState<number>(0);
+  const [captchaA, setCaptchaA] = useState<number>(0);
+  const [captchaB, setCaptchaB] = useState<number>(0);
   const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
 
   const expectedCaptcha = useMemo(() => captchaA + captchaB, [captchaA, captchaB]);
 
   useEffect(() => {
+    setIsMounted(true);
     setStartedAt(Date.now());
+    refreshCaptcha();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function refreshCaptcha() {
@@ -50,6 +54,12 @@ export default function ContactPage() {
     if (msgLen < 20 || msgLen > 2000) {
       setLoading(false);
       setError("Mesajul trebuie să aibă între 20 și 2000 caractere.");
+      return;
+    }
+
+    if (!isMounted) {
+      setLoading(false);
+      setError("Te rog reîncarcă pagina și încearcă din nou.");
       return;
     }
 
@@ -106,7 +116,7 @@ export default function ContactPage() {
             Locația noastră
           </p>
           <p>București, România</p>
-          <p className="mt-2">Email: contact@smart-lock.ro</p>
+          <p className="mt-2">Email: stefan.prodan@monvelli.ro</p>
           <p>Telefon: 0741119449</p>
         </div>
         <div className="text-right md:text-left">
@@ -211,28 +221,34 @@ export default function ContactPage() {
           </p>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-neutral-300">
-              Verificare: cât face <span className="font-semibold text-white">{captchaA} + {captchaB}</span>?
-            </p>
-            <button
-              type="button"
-              onClick={refreshCaptcha}
-              className="rounded border border-neutral-700 px-2 py-1 text-[11px] text-neutral-300 hover:border-white hover:text-white"
-            >
-              Reîncarcă
-            </button>
+        {isMounted && captchaA > 0 && captchaB > 0 ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-neutral-300">
+                Verificare: cât face <span className="font-semibold text-white">{captchaA} + {captchaB}</span>?
+              </p>
+              <button
+                type="button"
+                onClick={refreshCaptcha}
+                className="rounded border border-neutral-700 px-2 py-1 text-[11px] text-neutral-300 hover:border-white hover:text-white"
+              >
+                Reîncarcă
+              </button>
+            </div>
+            <input
+              type="number"
+              value={captchaAnswer}
+              onChange={(e) => setCaptchaAnswer(e.target.value)}
+              className="h-9 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 outline-none focus:border-blue-500"
+              placeholder="Răspuns"
+              required
+            />
           </div>
-          <input
-            type="number"
-            value={captchaAnswer}
-            onChange={(e) => setCaptchaAnswer(e.target.value)}
-            className="h-9 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 outline-none focus:border-blue-500"
-            placeholder="Răspuns"
-            required
-          />
-        </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="h-9 w-full animate-pulse rounded-md border border-neutral-800 bg-neutral-950/70" />
+          </div>
+        )}
         <button
           type="submit"
           disabled={loading}
