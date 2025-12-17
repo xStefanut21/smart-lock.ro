@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -10,12 +10,55 @@ export default function ContactPage() {
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [honeypot, setHoneypot] = useState("");
+  const [startedAt, setStartedAt] = useState<number>(() => Date.now());
+  const [captchaA, setCaptchaA] = useState<number>(() => 1 + Math.floor(Math.random() * 9));
+  const [captchaB, setCaptchaB] = useState<number>(() => 1 + Math.floor(Math.random() * 9));
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
+
+  const expectedCaptcha = useMemo(() => captchaA + captchaB, [captchaA, captchaB]);
+
+  useEffect(() => {
+    setStartedAt(Date.now());
+  }, []);
+
+  function refreshCaptcha() {
+    setCaptchaA(1 + Math.floor(Math.random() * 9));
+    setCaptchaB(1 + Math.floor(Math.random() * 9));
+    setCaptchaAnswer("");
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setSubmitted(false);
+
+    if (name.trim().length < 2 || name.trim().length > 80) {
+      setLoading(false);
+      setError("Numele trebuie să aibă între 2 și 80 caractere.");
+      return;
+    }
+
+    if (subject.trim().length > 120) {
+      setLoading(false);
+      setError("Subiectul trebuie să aibă maxim 120 caractere.");
+      return;
+    }
+
+    const msgLen = message.trim().length;
+    if (msgLen < 20 || msgLen > 2000) {
+      setLoading(false);
+      setError("Mesajul trebuie să aibă între 20 și 2000 caractere.");
+      return;
+    }
+
+    if (Number(captchaAnswer) !== expectedCaptcha) {
+      setLoading(false);
+      setError("Captcha invalid. Te rog încearcă din nou.");
+      refreshCaptcha();
+      return;
+    }
 
     const res = await fetch("/api/contact", {
       method: "POST",
@@ -27,6 +70,8 @@ export default function ContactPage() {
         email: email.trim(),
         subject: subject.trim(),
         message: message.trim(),
+        honeypot: honeypot.trim(),
+        elapsedMs: Date.now() - startedAt,
       }),
     });
 
@@ -43,6 +88,9 @@ export default function ContactPage() {
     setEmail("");
     setSubject("");
     setMessage("");
+    setHoneypot("");
+    setStartedAt(Date.now());
+    refreshCaptcha();
   }
 
   return (
@@ -95,6 +143,8 @@ export default function ContactPage() {
               id="name"
               type="text"
               required
+              minLength={2}
+              maxLength={80}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 outline-none focus:border-blue-500"
@@ -108,11 +158,27 @@ export default function ContactPage() {
               id="email"
               type="email"
               required
+              maxLength={320}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 outline-none focus:border-blue-500"
             />
           </div>
+        </div>
+
+        <div className="hidden">
+          <label className="text-xs font-medium text-neutral-300" htmlFor="website">
+            Website
+          </label>
+          <input
+            id="website"
+            type="text"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+            autoComplete="off"
+            tabIndex={-1}
+            className="h-9 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100"
+          />
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-neutral-300" htmlFor="subject">
@@ -121,6 +187,7 @@ export default function ContactPage() {
           <input
             id="subject"
             type="text"
+            maxLength={120}
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 outline-none focus:border-blue-500"
@@ -133,9 +200,37 @@ export default function ContactPage() {
           <textarea
             id="message"
             required
+            minLength={20}
+            maxLength={2000}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             className="min-h-[140px] rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-xs text-neutral-100 outline-none focus:border-blue-500"
+          />
+          <p className="text-[11px] text-neutral-500">
+            {message.trim().length}/2000 caractere
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-neutral-300">
+              Verificare: cât face <span className="font-semibold text-white">{captchaA} + {captchaB}</span>?
+            </p>
+            <button
+              type="button"
+              onClick={refreshCaptcha}
+              className="rounded border border-neutral-700 px-2 py-1 text-[11px] text-neutral-300 hover:border-white hover:text-white"
+            >
+              Reîncarcă
+            </button>
+          </div>
+          <input
+            type="number"
+            value={captchaAnswer}
+            onChange={(e) => setCaptchaAnswer(e.target.value)}
+            className="h-9 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 outline-none focus:border-blue-500"
+            placeholder="Răspuns"
+            required
           />
         </div>
         <button

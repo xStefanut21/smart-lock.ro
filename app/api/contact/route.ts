@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const RATE_LIMIT_MAX = 5;
+
+const rateLimitBuckets = new Map<string, number[]>();
+
 export async function POST(req: Request) {
   try {
     const resendApiKey = process.env.RESEND_API_KEY;
@@ -14,23 +19,64 @@ export async function POST(req: Request) {
       );
     }
 
+    const ipHeader =
+      req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "";
+    const ip = (ipHeader.split(",")[0] || "").trim() || "unknown";
+
+    const now = Date.now();
+    const bucket = rateLimitBuckets.get(ip) || [];
+    const fresh = bucket.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+    if (fresh.length >= RATE_LIMIT_MAX) {
+      rateLimitBuckets.set(ip, fresh);
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 }
+      );
+    }
+    fresh.push(now);
+    rateLimitBuckets.set(ip, fresh);
+
     const body = (await req.json().catch(() => ({}))) as {
       name?: string;
       email?: string;
       subject?: string;
       message?: string;
+      honeypot?: string;
+      elapsedMs?: number;
     };
 
     const name = (body.name || "").trim();
     const email = (body.email || "").trim();
     const subjectRaw = (body.subject || "").trim();
     const message = (body.message || "").trim();
+    const honeypot = (body.honeypot || "").trim();
+    const elapsedMs = typeof body.elapsedMs === "number" ? body.elapsedMs : 0;
+
+    if (honeypot) {
+      return NextResponse.json({ ok: true });
+    }
+
+    if (elapsedMs > 0 && elapsedMs < 2000) {
+      return NextResponse.json({ ok: true });
+    }
 
     if (!name || !email || !message) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
+    }
+
+    if (name.length < 2 || name.length > 80) {
+      return NextResponse.json({ error: "Invalid name" }, { status: 400 });
+    }
+
+    if (subjectRaw.length > 120) {
+      return NextResponse.json({ error: "Invalid subject" }, { status: 400 });
+    }
+
+    if (message.length < 20 || message.length > 2000) {
+      return NextResponse.json({ error: "Invalid message" }, { status: 400 });
     }
 
     if (!email.includes("@") || email.length > 320) {
