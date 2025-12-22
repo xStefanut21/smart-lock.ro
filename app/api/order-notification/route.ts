@@ -151,6 +151,9 @@ export async function POST(req: Request) {
         ? `\n\nFirmă: ${order.company_name || ""}\nCUI: ${order.company_cui || ""}\nNr. Reg. Com.: ${order.company_reg_com || ""}`
         : "";
 
+    const billingEmail = billing?.email || user.email || "";
+    const shippingEmail = shipping?.email || billingEmail || "";
+
     const text = [
       `Comandă nouă: ${order.id}`,
       createdAt ? `Data: ${createdAt}` : "",
@@ -163,8 +166,8 @@ export async function POST(req: Request) {
       "Produse:",
       ...lines,
       "",
-      `Facturare: ${billing?.name || ""} | ${billing?.phone || ""} | ${billing?.line1 || ""}, ${billing?.city || ""} ${billing?.county || ""} ${billing?.postal_code || ""}`,
-      `Livrare: ${shipping?.name || ""} | ${shipping?.phone || ""} | ${shipping?.line1 || ""}, ${shipping?.city || ""} ${shipping?.county || ""} ${shipping?.postal_code || ""}`,
+      `Facturare: ${billing?.name || ""} | ${billing?.phone || ""} | ${billingEmail} | ${billing?.line1 || ""}, ${billing?.city || ""} ${billing?.county || ""} ${billing?.postal_code || ""}`,
+      `Livrare: ${shipping?.name || ""} | ${shipping?.phone || ""} | ${shippingEmail} | ${shipping?.line1 || ""}, ${shipping?.city || ""} ${shipping?.county || ""} ${shipping?.postal_code || ""}`,
       companyBlock,
     ]
       .filter(Boolean)
@@ -328,12 +331,14 @@ export async function POST(req: Request) {
                   <div style="font-weight:800;color:#0f172a;margin-bottom:6px;">Facturare</div>
                   <div style="color:#0f172a;">${esc(billing?.name || "")}</div>
                   <div style="color:#475569;">${esc(billing?.phone || "")}</div>
+                  ${billingEmail ? `<div style=\"color:#475569;\">${esc(billingEmail)}</div>` : ""}
                   <div style="color:#475569;">${esc(billingLine)}</div>
                 </div>
                 <div style="flex:1;min-width:260px;padding:14px;border:1px solid #eef2f7;border-radius:12px;">
                   <div style="font-weight:800;color:#0f172a;margin-bottom:6px;">Livrare</div>
                   <div style="color:#0f172a;">${esc(shipping?.name || "")}</div>
                   <div style="color:#475569;">${esc(shipping?.phone || "")}</div>
+                  ${shippingEmail ? `<div style=\"color:#475569;\">${esc(shippingEmail)}</div>` : ""}
                   <div style="color:#475569;">${esc(shippingLine)}</div>
                 </div>
               </div>
@@ -458,12 +463,14 @@ export async function POST(req: Request) {
                   <div style="font-weight:800;color:#0f172a;margin-bottom:6px;">Facturare</div>
                   <div style="color:#0f172a;">${esc(billing?.name || "")}</div>
                   <div style="color:#475569;">${esc(billing?.phone || "")}</div>
+                  ${billingEmail ? `<div style=\"color:#475569;\">${esc(billingEmail)}</div>` : ""}
                   <div style="color:#475569;">${esc(billingLine)}</div>
                 </div>
                 <div style="flex:1;min-width:260px;padding:14px;border:1px solid #eef2f7;border-radius:12px;background:#fff;">
                   <div style="font-weight:800;color:#0f172a;margin-bottom:6px;">Livrare</div>
                   <div style="color:#0f172a;">${esc(shipping?.name || "")}</div>
                   <div style="color:#475569;">${esc(shipping?.phone || "")}</div>
+                  ${shippingEmail ? `<div style=\"color:#475569;\">${esc(shippingEmail)}</div>` : ""}
                   <div style="color:#475569;">${esc(shippingLine)}</div>
                 </div>
               </div>
@@ -509,8 +516,8 @@ export async function POST(req: Request) {
       "Produse:",
       ...lines,
       "",
-      `Facturare: ${billing?.name || ""} | ${billing?.phone || ""} | ${billing?.line1 || ""}, ${billing?.city || ""} ${billing?.county || ""} ${billing?.postal_code || ""}`,
-      `Livrare: ${shipping?.name || ""} | ${shipping?.phone || ""} | ${shipping?.line1 || ""}, ${shipping?.city || ""} ${shipping?.county || ""} ${shipping?.postal_code || ""}`,
+      `Facturare: ${billing?.name || ""} | ${billing?.phone || ""} | ${billingEmail} | ${billing?.line1 || ""}, ${billing?.city || ""} ${billing?.county || ""} ${billing?.postal_code || ""}`,
+      `Livrare: ${shipping?.name || ""} | ${shipping?.phone || ""} | ${shippingEmail} | ${shipping?.line1 || ""}, ${shipping?.city || ""} ${shipping?.county || ""} ${shipping?.postal_code || ""}`,
       "",
       `Vezi confirmarea: ${orderConfirmationUrl}`,
       "",

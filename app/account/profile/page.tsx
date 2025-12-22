@@ -3,6 +3,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { isValidRoPhone, normalizeRoPhone, sanitizePhone } from "@/lib/phone";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -16,6 +17,9 @@ export default function ProfilePage() {
   const [regCom, setRegCom] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const phoneTouched = phone.length > 0;
+  const phoneInvalid = phoneTouched && !isValidRoPhone(phone);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -59,6 +63,12 @@ export default function ProfilePage() {
     setMessage(null);
     setError(null);
 
+    if (phone && !isValidRoPhone(phone)) {
+      setSaving(false);
+      setError("Numărul de telefon nu este valid. Exemplu: 07XXXXXXXX");
+      return;
+    }
+
     const supabase = createSupabaseBrowserClient();
     const {
       data: { user },
@@ -74,7 +84,7 @@ export default function ProfilePage() {
         id: user.id,
         account_type: accountType,
         full_name: fullName || null,
-        phone: phone || null,
+        phone: phone ? normalizeRoPhone(phone) : null,
         company_name: accountType === "pj" ? companyName || null : null,
         company_cui: accountType === "pj" ? cui || null : null,
         company_reg_com: accountType === "pj" ? regCom || null : null,
@@ -207,9 +217,14 @@ export default function ProfilePage() {
             id="phone"
             type="tel"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => setPhone(sanitizePhone(e.target.value))}
             className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-blue-500"
           />
+          {phoneInvalid && (
+            <p className="text-[11px] text-red-400">
+              Numărul de telefon nu este valid. Exemplu: 07XXXXXXXX
+            </p>
+          )}
         </div>
         <button
           type="submit"

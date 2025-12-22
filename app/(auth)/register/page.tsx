@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { isValidRoPhone, normalizeRoPhone, sanitizePhone } from "@/lib/phone";
 import { useRouter } from "next/navigation";
 
 const romanianCounties = [
@@ -53,10 +54,6 @@ function sanitizePostal(value: string): string {
   return value.replace(/\D/g, "").slice(0, 6);
 }
 
-function sanitizePhone(value: string): string {
-  return value.replace(/\D/g, "");
-}
-
 function isStrongPassword(value: string): boolean {
   // minim 8 caractere, cel puțin 1 literă mare, minim 2 cifre și 1 simbol
   return /^(?=.*[A-Z])(?=(?:.*\d){2,})(?=.*[^A-Za-z0-9]).{8,}$/.test(value);
@@ -79,6 +76,9 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const phoneTouched = phone.length > 0;
+  const phoneInvalid = phoneTouched && !isValidRoPhone(phone);
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -95,9 +95,9 @@ export default function RegisterPage() {
       return;
     }
 
-    if (phone && !/^\d+$/.test(phone)) {
+    if (phone && !isValidRoPhone(phone)) {
       setLoading(false);
-      setError("Numărul de telefon trebuie să conțină doar cifre.");
+      setError("Numărul de telefon nu este valid. Exemplu: 07XXXXXXXX");
       return;
     }
 
@@ -120,7 +120,7 @@ export default function RegisterPage() {
           id: data.user.id,
           account_type: accountType,
           full_name: fullName || null,
-          phone: phone || null,
+          phone: phone ? normalizeRoPhone(phone) : null,
           company_name: accountType === "pj" ? companyName || null : null,
           company_cui: accountType === "pj" ? cui || null : null,
           company_reg_com: accountType === "pj" ? regCom || null : null,
@@ -277,6 +277,11 @@ export default function RegisterPage() {
               onChange={(e) => setPhone(sanitizePhone(e.target.value))}
               className="mt-1 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
             />
+            {phoneInvalid && (
+              <p className="mt-1 text-[11px] text-red-400">
+                Numărul de telefon nu este valid. Exemplu: 07XXXXXXXX
+              </p>
+            )}
           </label>
         </div>
 

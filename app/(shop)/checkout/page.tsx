@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { isValidRoPhone, normalizeRoPhone, sanitizePhone } from "@/lib/phone";
 
 interface CartItem {
   id: string;
@@ -41,6 +42,9 @@ export default function CheckoutPage() {
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const billingPhoneTouched = billingPhone.length > 0;
+  const billingPhoneInvalid = billingPhoneTouched && !isValidRoPhone(billingPhone);
 
   const romanianCounties = [
     "Alba",
@@ -229,13 +233,20 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!isValidRoPhone(billingPhone)) {
+      setError("Numărul de telefon nu este valid. Exemplu: 07XXXXXXXX");
+      setLoading(false);
+      return;
+    }
+
     const shippingAddressPayload = {
       line1: shippingSameAsBilling ? billingLine1 : shippingLine1,
       city: shippingSameAsBilling ? billingCity : shippingCity,
       county: shippingSameAsBilling ? billingCounty : shippingCounty,
       postal_code: shippingSameAsBilling ? billingPostal : shippingPostal,
       name: billingName || null,
-      phone: billingPhone || null,
+      phone: billingPhone ? normalizeRoPhone(billingPhone) : null,
+      email: user.email || null,
     };
 
     const billingAddressPayload = {
@@ -244,7 +255,8 @@ export default function CheckoutPage() {
       county: billingCounty,
       postal_code: billingPostal,
       name: billingName || null,
-      phone: billingPhone || null,
+      phone: billingPhone ? normalizeRoPhone(billingPhone) : null,
+      email: user.email || null,
     };
 
     const { data: order, error: orderError } = await supabase
@@ -324,7 +336,7 @@ export default function CheckoutPage() {
         {
           id: user.id,
           full_name: billingName || null,
-          phone: billingPhone || null,
+          phone: billingPhone ? normalizeRoPhone(billingPhone) : null,
         },
         { onConflict: "id" }
       );
@@ -460,9 +472,14 @@ export default function CheckoutPage() {
                     id="billingPhone"
                     type="tel"
                     value={billingPhone}
-                    onChange={(e) => setBillingPhone(e.target.value)}
+                    onChange={(e) => setBillingPhone(sanitizePhone(e.target.value))}
                     className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-blue-500"
                   />
+                  {billingPhoneInvalid && (
+                    <p className="text-[11px] text-red-400">
+                      Numărul de telefon nu este valid. Exemplu: 07XXXXXXXX
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="grid gap-3 md:grid-cols-2">

@@ -32,6 +32,7 @@ export default function OrdersPage() {
       const { data: ordersData } = await supabase
         .from("orders")
         .select("id, status, total_amount, created_at")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       setOrders(ordersData ?? []);

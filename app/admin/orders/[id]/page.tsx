@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 type AdminOrder = {
   id: string;
@@ -29,6 +30,8 @@ type AdminOrderItem = {
   quantity: number;
   unit_price: number;
   product_name: string | null;
+  product_slug?: string | null;
+  product_image_url?: string | null;
   color?: string | null;
 };
 
@@ -89,7 +92,7 @@ export default function AdminOrderDetailPage() {
       const { data: itemsData } = await supabase
         .from("order_items")
         .select(
-          "id, product_id, quantity, unit_price, color, products(name)"
+          "id, product_id, quantity, unit_price, color, products(name, slug, image_url)"
         )
         .eq("order_id", id);
 
@@ -99,6 +102,8 @@ export default function AdminOrderDetailPage() {
         quantity: row.quantity,
         unit_price: row.unit_price,
         product_name: row.products?.name ?? null,
+        product_slug: row.products?.slug ?? null,
+        product_image_url: row.products?.image_url ?? null,
         color: row.color ?? null,
       }));
 
@@ -183,7 +188,14 @@ export default function AdminOrderDetailPage() {
             {order.status || "nouă"}
           </span>
         </p>
-        <div className="flex items-center gap-2 text-[11px]">
+        <div className="flex flex-wrap items-center gap-2 text-[11px]">
+          <button
+            type="button"
+            onClick={() => window.open(`/admin/orders/${order.id}/invoice`, "_blank")}
+            className="h-7 rounded border border-neutral-700 bg-neutral-900 px-2 text-[11px] text-neutral-200 hover:border-red-500 hover:text-white"
+          >
+            Generează factură
+          </button>
           <span className="text-neutral-400">Schimbă statusul:</span>
           <select
             value={order.status || "noua"}
@@ -222,6 +234,7 @@ export default function AdminOrderDetailPage() {
           )}
           <p>{billing.name || "-"}</p>
           <p className="text-neutral-300">{billing.phone || "-"}</p>
+          {billing.email && <p className="text-neutral-300">{billing.email}</p>}
           <p className="text-neutral-300">{billing.line1 || "-"}</p>
           <p className="text-neutral-400">
             {billing.city || ""}
@@ -237,6 +250,9 @@ export default function AdminOrderDetailPage() {
           <h2 className="mb-1 text-sm font-semibold text-white">Adresă livrare</h2>
           <p>{shipping.name || billing.name || "-"}</p>
           <p className="text-neutral-300">{shipping.phone || billing.phone || "-"}</p>
+          {(shipping.email || billing.email) && (
+            <p className="text-neutral-300">{shipping.email || billing.email}</p>
+          )}
           <p className="text-neutral-300">{shipping.line1 || billing.line1 || "-"}</p>
           <p className="text-neutral-400">
             {shipping.city || billing.city || ""}
@@ -265,14 +281,48 @@ export default function AdminOrderDetailPage() {
                   key={item.id}
                   className="flex items-center justify-between gap-3 border-b border-neutral-900 pb-2 last:border-0 last:pb-0"
                 >
-                  <div>
-                    <p className="text-[13px] text-neutral-100">
-                      {item.product_name || item.product_id || "Produs"}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    {item.product_slug && item.product_image_url ? (
+                      <Link
+                        href={`/products/${encodeURIComponent(item.product_slug)}`}
+                        className="block"
+                      >
+                        <img
+                          src={item.product_image_url}
+                          alt={item.product_name || "Produs"}
+                          width={44}
+                          height={44}
+                          className="h-11 w-11 rounded-md border border-neutral-800 bg-white object-contain"
+                        />
+                      </Link>
+                    ) : item.product_image_url ? (
+                      <img
+                        src={item.product_image_url}
+                        alt={item.product_name || "Produs"}
+                        width={44}
+                        height={44}
+                        className="h-11 w-11 rounded-md border border-neutral-800 bg-white object-contain"
+                      />
+                    ) : null}
+
+                    <div>
+                      <p className="text-[13px] text-neutral-100">
+                        {item.product_slug ? (
+                          <Link
+                            href={`/products/${encodeURIComponent(item.product_slug)}`}
+                            className="hover:underline"
+                          >
+                            {item.product_name || item.product_id || "Produs"}
+                          </Link>
+                        ) : (
+                          item.product_name || item.product_id || "Produs"
+                        )}
+                      </p>
                     {item.color && (
                       <p className="text-[11px] text-neutral-400">Culoare: {item.color}</p>
                     )}
                     <p className="text-[11px] text-neutral-400">Cantitate: {item.quantity}</p>
+                    </div>
                   </div>
                   <div className="text-right text-[13px] text-neutral-100">
                     <p>
