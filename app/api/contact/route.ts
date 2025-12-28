@@ -8,11 +8,11 @@ const rateLimitBuckets = new Map<string, number[]>();
 export async function POST(req: Request) {
   try {
     const resendApiKey = process.env.RESEND_API_KEY;
-    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminEmail = process.env.ADMIN_EMAIL || "stefan.prodan@monvelli.ro";
     const emailFrom = process.env.EMAIL_FROM;
     const replyToEnv = process.env.REPLY_TO;
 
-    if (!resendApiKey || !adminEmail || !emailFrom) {
+    if (!resendApiKey || !emailFrom) {
       return NextResponse.json(
         { error: "Missing email environment variables." },
         { status: 500 }

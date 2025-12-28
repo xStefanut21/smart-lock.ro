@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     const resendApiKey = process.env.RESEND_API_KEY;
-    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminEmail = process.env.ADMIN_EMAIL || "stefan.prodan@monvelli.ro";
     const emailFrom = process.env.EMAIL_FROM;
     const replyTo = process.env.REPLY_TO;
 
@@ -28,10 +28,10 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!resendApiKey || !adminEmail || !emailFrom) {
+    if (!resendApiKey || !emailFrom) {
       console.error("[order-notification] Missing email env vars", {
         hasResend: !!resendApiKey,
-        hasAdminEmail: !!adminEmail,
+        hasAdminEmail: !!process.env.ADMIN_EMAIL,
         hasEmailFrom: !!emailFrom,
       });
       return NextResponse.json(
