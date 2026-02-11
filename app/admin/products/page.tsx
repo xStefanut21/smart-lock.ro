@@ -41,13 +41,25 @@ export default function AdminProductsPage() {
     return url.substring(index + marker.length);
   }
 
+  function getProductManualPathFromUrl(url: string | null | undefined): string | null {
+    if (!url) return null;
+
+    const marker = "/product-manuals/";
+    const index = url.indexOf(marker);
+
+    if (index === -1) return null;
+
+    return url.substring(index + marker.length);
+  }
+
   async function handleDeleteProduct(product: AdminProduct) {
     if (!product.id) return;
-    if (!confirm(`Sigur vrei să ștergi produsul "${product.name}" și toate imaginile asociate?`)) return;
+    if (!confirm(`Sigur vrei să ștergi produsul "${product.name}" și toate fișierele asociate?`)) return;
 
     const supabase = createSupabaseBrowserClient();
 
     const pathsToDelete: string[] = [];
+    const manualPathsToDelete: string[] = [];
 
     const { data: images } = await supabase
       .from("product_images")
@@ -67,6 +79,26 @@ export default function AdminProductsPage() {
     if (pathsToDelete.length > 0) {
       await supabase.storage.from("product-images").remove(pathsToDelete);
     }
+
+    const { data: manualsData } = await supabase
+      .from("product_manuals")
+      .select("storage_path")
+      .eq("product_id", product.id);
+
+    if (manualsData && Array.isArray(manualsData)) {
+      for (const m of manualsData as { storage_path: string | null }[]) {
+        if (m.storage_path) manualPathsToDelete.push(m.storage_path);
+      }
+    }
+
+    if (manualPathsToDelete.length > 0) {
+      await supabase.storage.from("product-manuals").remove(manualPathsToDelete);
+    }
+
+    await supabase
+      .from("product_manuals")
+      .delete()
+      .eq("product_id", product.id);
 
     await supabase
       .from("product_images")

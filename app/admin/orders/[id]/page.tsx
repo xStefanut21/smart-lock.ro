@@ -15,6 +15,8 @@ type AdminOrder = {
   shipping_method: string | null;
   payment_provider: string | null;
   payment_reference: string | null;
+  awb_number: string | null;
+  awb_added_at: string | null;
   shipping_address: any | null;
   billing_address: any | null;
   comment?: string | null;
@@ -46,6 +48,8 @@ export default function AdminOrderDetailPage() {
   const [items, setItems] = useState<AdminOrderItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [savingStatus, setSavingStatus] = useState(false);
+  const [awbNumber, setAwbNumber] = useState("");
+  const [savingAwb, setSavingAwb] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -78,7 +82,7 @@ export default function AdminOrderDetailPage() {
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select(
-          "id, status, total_amount, shipping_cost, vat_amount, created_at, shipping_method, payment_provider, payment_reference, shipping_address, billing_address, comment, account_type, company_name, company_cui, company_reg_com"
+          "id, status, total_amount, shipping_cost, vat_amount, created_at, shipping_method, payment_provider, payment_reference, awb_number, awb_added_at, shipping_address, billing_address, comment, account_type, company_name, company_cui, company_reg_com"
         )
         .eq("id", id)
         .maybeSingle<AdminOrder>();
@@ -108,6 +112,7 @@ export default function AdminOrderDetailPage() {
       }));
 
       setOrder(orderData);
+      setAwbNumber(orderData.awb_number || "");
       setItems(mappedItems);
       setLoading(false);
     }
@@ -168,6 +173,85 @@ export default function AdminOrderDetailPage() {
     setOrder((prev) => (prev ? { ...prev, status: nextStatus } : prev));
   }
 
+  async function handleAwbSave() {
+    if (!id) return;
+
+    setSavingAwb(true);
+    setError(null);
+
+    const supabase = createSupabaseBrowserClient();
+    const trimmedAwb = awbNumber.trim();
+    const updateData: any = {
+      awb_number: trimmedAwb || null,
+    };
+
+    if (trimmedAwb) {
+      updateData.awb_added_at = new Date().toISOString();
+    } else {
+      // Explicitly clear awb_added_at when AWB is empty
+      updateData.awb_added_at = null;
+    }
+
+    const { error: updateError } = await supabase
+      .from("orders")
+      .update(updateData)
+      .eq("id", id);
+
+    setSavingAwb(false);
+
+    if (updateError) {
+      setError(
+        `Nu am putut actualiza AWB-ul: ${
+          updateError.message || "eroare necunoscută"
+        }`
+      );
+      return;
+    }
+
+    setOrder((prev) => (prev ? { 
+      ...prev, 
+      awb_number: trimmedAwb || null,
+      awb_added_at: trimmedAwb ? new Date().toISOString() : null
+    } : prev));
+  }
+
+  async function handleAwbDelete() {
+    if (!id) return;
+
+    setSavingAwb(true);
+    setError(null);
+
+    const supabase = createSupabaseBrowserClient();
+    const { error: updateError } = await supabase
+      .from("orders")
+      .update({ 
+        awb_number: null,
+        awb_added_at: null
+      })
+      .eq("id", id);
+
+    setSavingAwb(false);
+
+    if (updateError) {
+      setError(
+        `Nu am putut șterge AWB-ul: ${
+          updateError.message || "eroare necunoscută"
+        }`
+      );
+      return;
+    }
+
+    // Update local state
+    setOrder((prev) => (prev ? { 
+      ...prev, 
+      awb_number: null,
+      awb_added_at: null
+    } : prev));
+    
+    // Clear input field
+    setAwbNumber("");
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 text-sm text-neutral-200">
       <button
@@ -189,13 +273,6 @@ export default function AdminOrderDetailPage() {
           </span>
         </p>
         <div className="flex flex-wrap items-center gap-2 text-[11px]">
-          <button
-            type="button"
-            onClick={() => window.open(`/admin/orders/${order.id}/invoice`, "_blank")}
-            className="h-7 rounded border border-neutral-700 bg-neutral-900 px-2 text-[11px] text-neutral-200 hover:border-red-500 hover:text-white"
-          >
-            Generează factură
-          </button>
           <span className="text-neutral-400">Schimbă statusul:</span>
           <select
             value={order.status || "noua"}
@@ -268,6 +345,78 @@ export default function AdminOrderDetailPage() {
           )}
         </section>
       </div>
+
+      <section className="mt-4 rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-xs">
+        <h2 className="mb-3 text-sm font-semibold text-white">AWB - Tracking colet</h2>
+        <div className="space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
+            <div className="flex-1">
+              <label className="mb-1 block text-neutral-300">Număr AWB</label>
+              <input
+                type="text"
+                value={awbNumber}
+                onChange={(e) => setAwbNumber(e.target.value)}
+                placeholder="Introdu numărul AWB (ex: 1234567890)"
+                className="h-8 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 outline-none focus:border-red-500"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleAwbSave}
+                disabled={savingAwb || awbNumber.trim() === (order.awb_number || "")}
+                className="h-8 rounded-md bg-red-600 px-3 text-xs font-medium text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {savingAwb ? "Se salvează..." : awbNumber.trim() && awbNumber.trim() !== (order.awb_number || "") ? "Actualizează AWB" : "Salvează AWB"}
+              </button>
+              {(order.awb_number || awbNumber.trim()) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm("Ești sigur că vrei să ștergi acest AWB?")) {
+                      handleAwbDelete();
+                    }
+                  }}
+                  disabled={savingAwb}
+                  className="h-8 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs font-medium text-neutral-200 hover:border-red-500 hover:text-white disabled:opacity-60"
+                >
+                  Șterge
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {order.awb_number && (
+            <div className="rounded-md border border-green-700/30 bg-green-950/20 p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-green-400">AWB curent</p>
+                  <p className="font-mono text-xs text-neutral-200">{order.awb_number}</p>
+                  {order.awb_added_at && (
+                    <p className="text-[10px] text-neutral-400">
+                      Adăugat la {new Date(order.awb_added_at).toLocaleString("ro-RO")}
+                    </p>
+                  )}
+                </div>
+                <div className="text-green-400">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {!order.awb_number && (
+            <div className="rounded-md border border-neutral-700/30 bg-neutral-900/20 p-3">
+              <p className="text-xs text-neutral-400">
+                <span className="inline-block mr-1">ℹ️</span>
+                Adaugă numărul AWB după ce coletul a fost predat curierului.
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
 
       <section className="mt-4 grid gap-4 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)]">
         <div className="space-y-3 rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-xs text-neutral-200">

@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AddToCartButton } from "@/components/add-to-cart-button";
-import { ProductSimpleAddToCartWithQuantity } from "@/components/product-simple-add-to-cart-with-quantity";
+import { ProductAddToCartWithInstallation } from "@/components/product-add-to-cart-with-installation";
 import { ProductColorAddToCart } from "@/components/product-color-add-to-cart";
 import { WishlistToggleButton } from "@/components/wishlist-toggle-button";
 import { ProductImageGallery } from "@/components/product-image-gallery";
 import { ProductDescriptionReviewsTabs } from "@/components/product-description-reviews-tabs";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const { data: product } = await supabase
     .from("products")
     .select(
-      "id, name, price, short_description, description, specs, image_url, stock, is_active, slug, color_options, product_images(image_url, sort_order)"
+      "id, name, price, short_description, description, specs, image_url, stock, is_active, slug, color_options, has_installation_option, installation_price, product_images(image_url, sort_order), product_manuals(id, title, pdf_url, created_at)"
     )
     .eq("slug", slug)
     .maybeSingle<any>();
@@ -151,28 +152,49 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 }).format(product.price)}
               </p>
             </div>
+            {Array.isArray(product.product_manuals) && product.product_manuals.length > 0 && (
+              <div className="mt-3 rounded-md border border-neutral-800 bg-neutral-950/60 p-3">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-300">
+                  Manuale PDF
+                </p>
+                <ul className="space-y-2">
+                  {product.product_manuals.map((m: any) => (
+                    <li key={m.id} className="flex items-center justify-between gap-3">
+                      <span className="truncate text-[12px] text-neutral-200">
+                        {m.title || "Manual"}
+                      </span>
+                      <a
+                        href={m.pdf_url}
+                        download
+                        target="_blank"
+                        rel="noreferrer"
+                        className="shrink-0 rounded-md border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-[11px] font-medium text-neutral-100 hover:bg-neutral-800"
+                      >
+                        Descarcă
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="mt-4 max-w-xs">
-              {typeof product.color_options === "string" && product.color_options.trim() ? (
-                <ProductColorAddToCart
-                  productId={product.id}
-                  name={product.name}
-                  price={product.price}
-                  imageUrl={product.image_url ?? null}
-                  stockAvailable={typeof product.stock === "number" && product.stock > 0}
-                  colors={product.color_options
-                    .split(",")
-                    .map((c: string) => c.trim())
-                    .filter((c: string) => c.length > 0)}
-                />
-              ) : (
-                <ProductSimpleAddToCartWithQuantity
-                  productId={product.id}
-                  name={product.name}
-                  price={product.price}
-                  imageUrl={product.image_url ?? null}
-                  disabled={!(typeof product.stock === "number" && product.stock > 0)}
-                />
-              )}
+              <ProductAddToCartWithInstallation
+                productId={product.id}
+                name={product.name}
+                price={product.price}
+                imageUrl={product.image_url ?? null}
+                stockAvailable={typeof product.stock === "number" && product.stock > 0}
+                hasInstallationOption={product.has_installation_option === true}
+                installationPrice={product.installation_price}
+                colors={
+                  typeof product.color_options === "string" && product.color_options.trim()
+                    ? product.color_options
+                        .split(",")
+                        .map((c: string) => c.trim())
+                        .filter((c: string) => c.length > 0)
+                    : undefined
+                }
+              />
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, FormEvent } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 
 interface Props {
   productId: string;
@@ -121,9 +122,7 @@ export function ProductDescriptionReviewsTabs({ productId, slug, description }: 
       <div className="mt-4 text-xs md:text-sm">
         {active === "description" ? (
           description ? (
-            <p className="whitespace-pre-line break-words leading-relaxed text-neutral-100">
-              {description}
-            </p>
+            <MarkdownRenderer content={description} />
           ) : (
             <p className="text-neutral-400">
               Nu există încă o descriere detaliată pentru acest produs.

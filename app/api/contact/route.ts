@@ -39,6 +39,7 @@ export async function POST(req: Request) {
     const body = (await req.json().catch(() => ({}))) as {
       name?: string;
       email?: string;
+      phone?: string;
       subject?: string;
       message?: string;
       honeypot?: string;
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
 
     const name = (body.name || "").trim();
     const email = (body.email || "").trim();
+    const phone = (body.phone || "").trim();
     const subjectRaw = (body.subject || "").trim();
     const message = (body.message || "").trim();
     const honeypot = (body.honeypot || "").trim();
@@ -60,19 +62,43 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    if (!name || !email || !message) {
+    if (!name || name.length < 2 || name.length > 80) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Numele trebuie să aibă între 2 și 80 caractere." },
         { status: 400 }
       );
     }
 
-    if (name.length < 2 || name.length > 80) {
-      return NextResponse.json({ error: "Invalid name" }, { status: 400 });
+    if (!email || !email.includes("@") || email.length > 320) {
+      return NextResponse.json(
+        { error: "Email invalid." },
+        { status: 400 }
+      );
     }
 
-    if (subjectRaw.length > 120) {
-      return NextResponse.json({ error: "Invalid subject" }, { status: 400 });
+    if (!phone) {
+      return NextResponse.json(
+        { error: "Numărul de telefon este obligatoriu." },
+        { status: 400 }
+      );
+    }
+
+    // Validare strictă pentru telefon românesc
+    const phoneRegex = /^(\+4|0)?7[0-9]{8}$/;
+    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+
+    if (!phoneRegex.test(cleanPhone)) {
+      return NextResponse.json(
+        { error: "Numărul de telefon nu este valid. Introdu un număr românesc valid (ex: 0741119449 sau +40741119449)." },
+        { status: 400 }
+      );
+    }
+
+    if (!subjectRaw || subjectRaw.length > 120) {
+      return NextResponse.json(
+        { error: "Subiectul trebuie să aibă maxim 120 caractere." },
+        { status: 400 }
+      );
     }
 
     if (message.length < 20 || message.length > 2000) {
@@ -124,6 +150,7 @@ export async function POST(req: Request) {
                         <div style="font-weight:800;color:#0f172a;margin-bottom:8px;">Detalii</div>
                         <div style="color:#0f172a;"><strong>Nume:</strong> ${esc(name)}</div>
                         <div style="color:#0f172a;margin-top:4px;"><strong>Email:</strong> <a href="mailto:${esc(email)}" style="color:#2563eb;text-decoration:none;">${esc(email)}</a></div>
+                        ${phone ? `<div style="color:#0f172a;margin-top:4px;"><strong>Telefon:</strong> <a href="tel:${esc(phone)}" style="color:#2563eb;text-decoration:none;">${esc(phone)}</a></div>` : ''}
                         <div style="color:#0f172a;margin-top:4px;"><strong>Subiect:</strong> ${esc(safeSubject)}</div>
                       </div>
 

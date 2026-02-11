@@ -11,6 +11,8 @@ interface CartItem {
   quantity: number;
   image?: string | null;
   color?: string;
+  hasInstallation?: boolean;
+  installationPrice?: number;
 }
 
 export default function CartPage() {
@@ -32,7 +34,7 @@ export default function CartPage() {
         // normalizăm: o singură intrare per combinație (id, color), cu cantități adunate
         const map = new Map<string, CartItem>();
         for (const item of raw) {
-          const key = `${item.id}__${item.color ?? ""}`;
+          const key = `${item.id}__${item.color ?? ""}__${item.hasInstallation ? "with-install" : "no-install"}`;
           const existing = map.get(key);
           if (existing) {
             map.set(key, {
@@ -69,28 +71,28 @@ export default function CartPage() {
     }
   }
 
-  function handleIncrease(id: string, color?: string) {
+  function handleIncrease(id: string, color?: string, hasInstallation?: boolean) {
     syncAndSetItems(
       items.map((item) =>
-        item.id === id && item.color === color
+        item.id === id && item.color === color && item.hasInstallation === hasInstallation
           ? { ...item, quantity: item.quantity + 1 }
           : item
       )
     );
   }
 
-  function handleDecrease(id: string, color?: string) {
+  function handleDecrease(id: string, color?: string, hasInstallation?: boolean) {
     syncAndSetItems(
       items.map((item) =>
-        item.id === id && item.color === color && item.quantity > 1
+        item.id === id && item.color === color && item.hasInstallation === hasInstallation && item.quantity > 1
           ? { ...item, quantity: item.quantity - 1 }
           : item
       )
     );
   }
 
-  function handleRemove(id: string, color?: string) {
-    syncAndSetItems(items.filter((item) => !(item.id === id && item.color === color)));
+  function handleRemove(id: string, color?: string, hasInstallation?: boolean) {
+    syncAndSetItems(items.filter((item) => !(item.id === id && item.color === color && item.hasInstallation === hasInstallation)));
   }
 
   return (
@@ -103,7 +105,7 @@ export default function CartPage() {
           <ul className="mb-6 space-y-3">
             {items.map((item) => (
               <li
-                key={`${item.id}-${item.color ?? "_"}`}
+                key={`${item.id}-${item.color ?? "_"}-${item.hasInstallation ? "with-install" : "no-install"}`}
                 className="flex flex-col gap-3 rounded-lg border border-neutral-800 bg-neutral-950 p-3 text-sm text-neutral-100 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex items-center gap-3">
@@ -128,8 +130,38 @@ export default function CartPage() {
                       {new Intl.NumberFormat("ro-RO", {
                         style: "currency",
                         currency: "RON",
-                      }).format(item.price)} / buc
+                      }).format(item.price - (item.installationPrice || 0))} / buc
                     </p>
+                    {item.hasInstallation && item.installationPrice && (
+                      <div className="mt-1 rounded-md border border-neutral-700 bg-neutral-900 p-2">
+                        <div className="flex items-center gap-1 text-[11px] text-emerald-400">
+                          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          <span>Montaj Expert inclus</span>
+                        </div>
+                        <div className="mt-1 space-y-1">
+                          <div className="flex justify-between text-[10px]">
+                            <span className="text-neutral-400">Produs:</span>
+                            <span className="text-neutral-200">
+                              {new Intl.NumberFormat("ro-RO", {
+                                style: "currency",
+                                currency: "RON",
+                              }).format(item.price - item.installationPrice)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-[10px]">
+                            <span className="text-neutral-400">Montaj:</span>
+                            <span className="text-emerald-400">
+                              {new Intl.NumberFormat("ro-RO", {
+                                style: "currency",
+                                currency: "RON",
+                              }).format(item.installationPrice)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -137,7 +169,7 @@ export default function CartPage() {
                   <div className="flex items-center rounded-md border border-neutral-700 bg-neutral-900 text-xs">
                     <button
                       type="button"
-                      onClick={() => handleDecrease(item.id, item.color)}
+                      onClick={() => handleDecrease(item.id, item.color, item.hasInstallation)}
                       className="flex h-7 w-7 items-center justify-center border-r border-neutral-700 text-neutral-300 hover:bg-neutral-800"
                     >
                       −
@@ -147,7 +179,7 @@ export default function CartPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleIncrease(item.id, item.color)}
+                      onClick={() => handleIncrease(item.id, item.color, item.hasInstallation)}
                       className="flex h-7 w-7 items-center justify-center border-l border-neutral-700 text-neutral-300 hover:bg-neutral-800"
                     >
                       +
@@ -165,7 +197,7 @@ export default function CartPage() {
 
                   <button
                     type="button"
-                    onClick={() => handleRemove(item.id, item.color)}
+                    onClick={() => handleRemove(item.id, item.color, item.hasInstallation)}
                     className="ml-1 text-xs text-red-400 hover:text-red-300"
                     aria-label="Șterge produsul din coș"
                   >

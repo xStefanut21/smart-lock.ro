@@ -11,6 +11,8 @@ type AdminOrder = {
   created_at: string;
   shipping_method: string | null;
   payment_provider: string | null;
+  awb_number: string | null;
+  awb_added_at: string | null;
   billing_address: {
     name?: string | null;
     phone?: string | null;
@@ -26,6 +28,9 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [editingAwb, setEditingAwb] = useState<string | null>(null);
+  const [awbInput, setAwbInput] = useState("");
+  const [savingAwb, setSavingAwb] = useState(false);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -54,7 +59,7 @@ export default function AdminOrdersPage() {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, status, total_amount, created_at, shipping_method, payment_provider, billing_address, account_type, company_name"
+          "id, status, total_amount, created_at, shipping_method, payment_provider, awb_number, awb_added_at, billing_address, account_type, company_name"
         )
         .order("created_at", { ascending: false });
 
@@ -70,6 +75,91 @@ export default function AdminOrdersPage() {
 
     load();
   }, [router]);
+
+  async function handleAwbSave(orderId: string) {
+    setSavingAwb(true);
+    setError(null);
+
+    const supabase = createSupabaseBrowserClient();
+    const updateData: any = {
+      awb_number: awbInput.trim() || null,
+    };
+
+    if (awbInput.trim()) {
+      updateData.awb_added_at = new Date().toISOString();
+    }
+
+    const { error: updateError } = await supabase
+      .from("orders")
+      .update(updateData)
+      .eq("id", orderId);
+
+    setSavingAwb(false);
+
+    if (updateError) {
+      setError(`Nu am putut actualiza AWB-ul: ${updateError.message || "eroare necunoscută"}`);
+      return;
+    }
+
+    // Update local state
+    setOrders((prev) => prev.map((order) => 
+      order.id === orderId 
+        ? { 
+            ...order, 
+            awb_number: awbInput.trim() || null,
+            awb_added_at: awbInput.trim() ? new Date().toISOString() : null
+          } 
+        : order
+    ));
+
+    // Reset editing state
+    setEditingAwb(null);
+    setAwbInput("");
+  }
+
+  async function handleAwbDelete(orderId: string) {
+    if (!confirm("Ești sigur că vrei să ștergi acest AWB?")) return;
+
+    setSavingAwb(true);
+    setError(null);
+
+    const supabase = createSupabaseBrowserClient();
+    const { error: updateError } = await supabase
+      .from("orders")
+      .update({ 
+        awb_number: null,
+        awb_added_at: null
+      })
+      .eq("id", orderId);
+
+    setSavingAwb(false);
+
+    if (updateError) {
+      setError(`Nu am putut șterge AWB-ul: ${updateError.message || "eroare necunoscută"}`);
+      return;
+    }
+
+    // Update local state
+    setOrders((prev) => prev.map((order) => 
+      order.id === orderId 
+        ? { 
+            ...order, 
+            awb_number: null,
+            awb_added_at: null
+          } 
+        : order
+    ));
+  }
+
+  function startEditingAwb(orderId: string, currentAwb: string | null) {
+    setEditingAwb(orderId);
+    setAwbInput(currentAwb || "");
+  }
+
+  function cancelEditingAwb() {
+    setEditingAwb(null);
+    setAwbInput("");
+  }
 
   if (loading) {
     return (
@@ -115,6 +205,7 @@ export default function AdminOrdersPage() {
                 <th className="px-3 py-2 text-left font-medium">Client</th>
                 <th className="px-3 py-2 text-left font-medium">Status</th>
                 <th className="px-3 py-2 text-left font-medium">Livrare / Plată</th>
+                <th className="px-3 py-2 text-left font-medium">AWB</th>
                 <th className="px-3 py-2 text-right font-medium">Total</th>
                 <th className="px-3 py-2 text-right font-medium">Acțiuni</th>
               </tr>
@@ -152,6 +243,76 @@ export default function AdminOrdersPage() {
                     <td className="px-3 py-2 align-middle text-[11px] text-neutral-400">
                       <div>{order.shipping_method || "-"}</div>
                       <div>{order.payment_provider || "-"}</div>
+                    </td>
+                    <td className="px-3 py-2 align-middle text-neutral-300">
+                      {editingAwb === order.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={awbInput}
+                            onChange={(e) => setAwbInput(e.target.value)}
+                            placeholder="AWB..."
+                            className="h-6 w-24 rounded border border-neutral-600 bg-neutral-800 px-2 text-xs text-neutral-100 outline-none focus:border-red-500"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleAwbSave(order.id)}
+                            disabled={savingAwb}
+                            className="h-6 rounded bg-green-600 px-2 text-[10px] text-white hover:bg-green-500 disabled:opacity-60"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEditingAwb}
+                            className="h-6 rounded bg-neutral-600 px-2 text-[10px] text-white hover:bg-neutral-500"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : order.awb_number ? (
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex flex-col">
+                            <span className="font-mono text-xs">{order.awb_number}</span>
+                            {order.awb_added_at && (
+                              <span className="text-[10px] text-neutral-500">
+                                {new Date(order.awb_added_at).toLocaleDateString("ro-RO")}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              onClick={() => startEditingAwb(order.id, order.awb_number)}
+                              className="h-6 w-6 rounded border border-neutral-600 bg-neutral-800 text-[10px] text-neutral-300 hover:border-blue-500 hover:text-blue-400"
+                              title="Editează AWB"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAwbDelete(order.id)}
+                              disabled={savingAwb}
+                              className="h-6 w-6 rounded border border-neutral-600 bg-neutral-800 text-[10px] text-neutral-300 hover:border-red-500 hover:text-red-400 disabled:opacity-60"
+                              title="Șterge AWB"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-neutral-500">-</span>
+                          <button
+                            type="button"
+                            onClick={() => startEditingAwb(order.id, null)}
+                            className="h-6 rounded border border-neutral-600 bg-neutral-800 px-2 text-[10px] text-neutral-300 hover:border-green-500 hover:text-green-400"
+                          >
+                            + AWB
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-right align-middle text-neutral-100">
                       {new Intl.NumberFormat("ro-RO", {

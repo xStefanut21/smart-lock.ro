@@ -9,6 +9,8 @@ interface Order {
   status: string;
   total_amount: number;
   created_at: string;
+  awb_number: string | null;
+  awb_added_at: string | null;
 }
 
 export default function OrdersPage() {
@@ -31,7 +33,7 @@ export default function OrdersPage() {
 
       const { data: ordersData } = await supabase
         .from("orders")
-        .select("id, status, total_amount, created_at")
+        .select("id, status, total_amount, created_at, awb_number, awb_added_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -65,6 +67,7 @@ export default function OrdersPage() {
                 <th className="px-3 py-2 text-left font-medium">ID comandă</th>
                 <th className="px-3 py-2 text-left font-medium">Dată</th>
                 <th className="px-3 py-2 text-left font-medium">Status</th>
+                <th className="px-3 py-2 text-left font-medium">AWB</th>
                 <th className="px-3 py-2 text-right font-medium">Total</th>
               </tr>
             </thead>
@@ -87,6 +90,20 @@ export default function OrdersPage() {
                   </td>
                   <td className="px-3 py-2 align-middle text-neutral-300">
                     {order.status}
+                  </td>
+                  <td className="px-3 py-2 align-middle text-neutral-300">
+                    {order.awb_number ? (
+                      <div className="flex flex-col">
+                        <span className="font-mono text-xs">{order.awb_number}</span>
+                        {order.awb_added_at && (
+                          <span className="text-[10px] text-neutral-500">
+                            {new Date(order.awb_added_at).toLocaleDateString("ro-RO")}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-neutral-500">-</span>
+                    )}
                   </td>
                   <td className="px-3 py-2 text-right align-middle text-neutral-100">
                     {new Intl.NumberFormat("ro-RO", {

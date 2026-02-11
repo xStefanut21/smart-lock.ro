@@ -3,6 +3,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { RichTextEditor } from "@/components/rich-text-editor";
 
 type Category = {
   id: string;
@@ -26,6 +27,8 @@ export default function AdminNewProductPage() {
   const [isActive, setIsActive] = useState(true);
   const [description, setDescription] = useState("");
   const [colorOptions, setColorOptions] = useState("");
+  const [hasInstallationOption, setHasInstallationOption] = useState(false);
+  const [installationPrice, setInstallationPrice] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState<string | "">("");
 
@@ -100,6 +103,15 @@ export default function AdminNewProductPage() {
       return;
     }
 
+    const numericInstallationPrice = hasInstallationOption
+      ? Number(installationPrice.trim().replace(",", "."))
+      : 0;
+    if (hasInstallationOption && (Number.isNaN(numericInstallationPrice) || numericInstallationPrice < 0)) {
+      setError("Te rog introdu un preț valid pentru montaj (0 sau mai mare).");
+      setSaving(false);
+      return;
+    }
+
     let finalImageUrl = imageUrl.trim() || null;
 
     if (imageFile) {
@@ -140,6 +152,8 @@ export default function AdminNewProductPage() {
         description: description.trim() || null,
         color_options: colorOptions.trim() || null,
         category_id: categoryId || null,
+        has_installation_option: hasInstallationOption,
+        installation_price: hasInstallationOption ? numericInstallationPrice : null,
       })
       .select("id")
       .maybeSingle<{ id: string }>();
@@ -299,12 +313,10 @@ export default function AdminNewProductPage() {
           <label className="text-neutral-300" htmlFor="description">
             Descriere lungă (opțional)
           </label>
-          <textarea
-            id="description"
+          <RichTextEditor
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={5}
-            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-red-500"
+            onChange={setDescription}
+            placeholder="Adaugă o descriere detaliată a produsului..."
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -366,6 +378,40 @@ export default function AdminNewProductPage() {
               Produs activ (vizibil pe site)
             </label>
           </div>
+        </div>
+        <div className="space-y-4 rounded-xl border border-neutral-800 bg-neutral-950/80 p-6 text-xs">
+          <h2 className="text-sm font-semibold text-white">Opțiune montaj</h2>
+          <div className="flex items-center gap-2">
+            <input
+              id="hasInstallationOption"
+              type="checkbox"
+              checked={hasInstallationOption}
+              onChange={(e) => setHasInstallationOption(e.target.checked)}
+              className="h-4 w-4 rounded border-neutral-700 bg-neutral-900 text-red-600 focus:ring-red-600"
+            />
+            <label htmlFor="hasInstallationOption" className="text-xs text-neutral-300">
+              Acest produs are opțiune de montaj
+            </label>
+          </div>
+          {hasInstallationOption && (
+            <div className="flex flex-col gap-1">
+              <label className="text-neutral-300" htmlFor="installationPrice">
+                Preț montaj (RON)
+              </label>
+              <input
+                id="installationPrice"
+                type="text"
+                inputMode="decimal"
+                value={installationPrice}
+                onChange={(e) => setInstallationPrice(e.target.value)}
+                placeholder="ex: 250"
+                className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-red-500"
+              />
+              <p className="text-[11px] text-neutral-500">
+                Prețul va fi afișat pe pagina produsului ca opțiune suplimentară.
+              </p>
+            </div>
+          )}
         </div>
         <button
           type="submit"

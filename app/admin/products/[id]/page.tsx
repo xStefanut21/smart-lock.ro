@@ -3,6 +3,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { RichTextEditor } from "@/components/rich-text-editor";
 
 type AdminProduct = {
   id: string;
@@ -16,6 +17,8 @@ type AdminProduct = {
   is_active: boolean | null;
   description: string | null;
   color_options?: string | null;
+  has_installation_option?: boolean | null;
+  installation_price?: number | null;
 };
 
 type Category = {
@@ -27,6 +30,14 @@ type ProductImage = {
   id: string;
   image_url: string;
   sort_order: number | null;
+};
+
+type ProductManual = {
+  id: string;
+  title: string | null;
+  pdf_url: string;
+  storage_path: string | null;
+  created_at: string;
 };
 
 export default function AdminEditProductPage() {
@@ -46,10 +57,15 @@ export default function AdminEditProductPage() {
   const [shortDescription, setShortDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [productManuals, setProductManuals] = useState<ProductManual[]>([]);
+  const [manualFiles, setManualFiles] = useState<File[]>([]);
+  const [addingManuals, setAddingManuals] = useState(false);
   const [stock, setStock] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [description, setDescription] = useState("");
   const [colorOptions, setColorOptions] = useState("");
+  const [hasInstallationOption, setHasInstallationOption] = useState(false);
+  const [installationPrice, setInstallationPrice] = useState("");
   const [extraImages, setExtraImages] = useState<ProductImage[]>([]);
   const [extraImageFiles, setExtraImageFiles] = useState<File[]>([]);
   const [addingImage, setAddingImage] = useState(false);
@@ -60,6 +76,17 @@ export default function AdminEditProductPage() {
     if (!url) return null;
 
     const marker = "/product-images/";
+    const index = url.indexOf(marker);
+
+    if (index === -1) return null;
+
+    return url.substring(index + marker.length);
+  }
+
+  function getProductManualPathFromUrl(url: string | null | undefined): string | null {
+    if (!url) return null;
+
+    const marker = "/product-manuals/";
     const index = url.indexOf(marker);
 
     if (index === -1) return null;
@@ -98,7 +125,7 @@ export default function AdminEditProductPage() {
       const { data, error } = await supabase
         .from("products")
         .select(
-          "id, name, price, slug, short_description, image_url, brand, stock, is_active, description, color_options, category_id"
+          "id, name, price, slug, short_description, image_url, brand, stock, is_active, description, color_options, category_id, has_installation_option, installation_price"
         )
         .eq("id", id)
         .maybeSingle<AdminProduct>();
@@ -123,6 +150,12 @@ export default function AdminEditProductPage() {
       setIsActive(data.is_active !== false);
       setDescription(data.description ?? "");
       setColorOptions(data.color_options ?? "");
+      setHasInstallationOption(data.has_installation_option === true);
+      setInstallationPrice(
+        data.installation_price != null && !Number.isNaN(data.installation_price)
+          ? String(data.installation_price)
+          : ""
+      );
       // @ts-ignore - category_id poate să nu fie încă pe tip
       setCategoryId((data as any).category_id ?? "");
 
@@ -144,11 +177,116 @@ export default function AdminEditProductPage() {
       if (imagesData && Array.isArray(imagesData)) {
         setExtraImages(imagesData as ProductImage[]);
       }
+
+      const { data: manualsData } = await supabase
+        .from("product_manuals")
+        .select("id, title, pdf_url, storage_path, created_at")
+        .eq("product_id", id)
+        .order("created_at", { ascending: false });
+
+      if (manualsData && Array.isArray(manualsData)) {
+        setProductManuals(manualsData as ProductManual[]);
+      }
       setLoadingProduct(false);
     }
 
     load();
   }, [id, router]);
+
+  async function handleAddManuals() {
+    if (!id || manualFiles.length === 0) return;
+
+    setAddingManuals(true);
+    setError(null);
+    const supabase = createSupabaseBrowserClient();
+
+    const newlyInserted: ProductManual[] = [];
+
+    for (const file of manualFiles) {
+      const fileExt = file.name.split(".").pop() || "pdf";
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("product-manuals")
+        .upload(filePath, file, { contentType: "application/pdf" });
+
+      if (uploadError) {
+        setError(
+          `Nu am putut încărca unul dintre manuale: ${uploadError.message || "eroare necunoscută"}`
+        );
+        setAddingManuals(false);
+        return;
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("product-manuals").getPublicUrl(filePath);
+
+      const title = file.name.replace(/\.pdf$/i, "");
+
+      const { data: inserted, error: insertError } = await supabase
+        .from("product_manuals")
+        .insert({
+          product_id: id,
+          title: title || null,
+          pdf_url: publicUrl,
+          storage_path: filePath,
+        })
+        .select("id, title, pdf_url, storage_path, created_at")
+        .maybeSingle<ProductManual>();
+
+      if (insertError || !inserted) {
+        setError(
+          `Nu am putut salva unul dintre manuale: ${insertError?.message || "eroare necunoscută"}`
+        );
+        setAddingManuals(false);
+        return;
+      }
+
+      newlyInserted.push(inserted);
+    }
+
+    setProductManuals((prev) => [...newlyInserted, ...prev]);
+    setManualFiles([]);
+    setAddingManuals(false);
+  }
+
+  async function handleDeleteManual(manual: ProductManual) {
+    if (!id) return;
+    if (!confirm("Sigur vrei să ștergi acest manual?")) return;
+
+    const supabase = createSupabaseBrowserClient();
+
+    if (manual.storage_path) {
+      const { error: storageError } = await supabase.storage
+        .from("product-manuals")
+        .remove([manual.storage_path]);
+
+      if (storageError) {
+        setError(
+          `Nu am putut șterge fișierul manualului din storage (rămâne acolo, dar nu va mai fi folosit): ${
+            storageError.message || "eroare necunoscută"
+          }`
+        );
+      }
+    }
+
+    const { error: deleteError } = await supabase
+      .from("product_manuals")
+      .delete()
+      .eq("id", manual.id)
+      .eq("product_id", id);
+
+    if (deleteError) {
+      setError(
+        `Nu am putut șterge manualul: ${deleteError.message || "eroare necunoscută"}`
+      );
+      return;
+    }
+
+    setProductManuals((prev) => prev.filter((m) => m.id !== manual.id));
+  }
 
   async function handleAddExtraImage() {
     if (!id || extraImageFiles.length === 0) return;
@@ -347,6 +485,15 @@ export default function AdminEditProductPage() {
       return;
     }
 
+    const numericInstallationPrice = hasInstallationOption
+      ? Number(installationPrice.trim().replace(",", "."))
+      : 0;
+    if (hasInstallationOption && (Number.isNaN(numericInstallationPrice) || numericInstallationPrice < 0)) {
+      setError("Te rog introdu un preț valid pentru montaj (0 sau mai mare).");
+      setSaving(false);
+      return;
+    }
+
     const oldMainImageUrl = imageUrl;
 
     let finalImageUrl = imageUrl.trim() || null;
@@ -391,6 +538,8 @@ export default function AdminEditProductPage() {
         description: description.trim() || null,
         color_options: colorOptions.trim() || null,
         category_id: categoryId || null,
+        has_installation_option: hasInstallationOption,
+        installation_price: hasInstallationOption ? numericInstallationPrice : null,
       })
       .eq("id", id);
 
@@ -652,12 +801,10 @@ export default function AdminEditProductPage() {
           <label className="text-neutral-300" htmlFor="description">
             Descriere lungă (opțional)
           </label>
-          <textarea
-            id="description"
+          <RichTextEditor
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={5}
-            className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-red-500"
+            onChange={setDescription}
+            placeholder="Adaugă o descriere detaliată a produsului..."
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -717,6 +864,40 @@ export default function AdminEditProductPage() {
               Produs activ (vizibil pe site)
             </label>
           </div>
+        </div>
+        <div className="space-y-4 rounded-xl border border-neutral-800 bg-neutral-950/80 p-6 text-xs">
+          <h2 className="text-sm font-semibold text-white">Opțiune montaj</h2>
+          <div className="flex items-center gap-2">
+            <input
+              id="hasInstallationOption"
+              type="checkbox"
+              checked={hasInstallationOption}
+              onChange={(e) => setHasInstallationOption(e.target.checked)}
+              className="h-4 w-4 rounded border-neutral-700 bg-neutral-900 text-red-600 focus:ring-red-600"
+            />
+            <label htmlFor="hasInstallationOption" className="text-xs text-neutral-300">
+              Acest produs are opțiune de montaj
+            </label>
+          </div>
+          {hasInstallationOption && (
+            <div className="flex flex-col gap-1">
+              <label className="text-neutral-300" htmlFor="installationPrice">
+                Preț montaj (RON)
+              </label>
+              <input
+                id="installationPrice"
+                type="text"
+                inputMode="decimal"
+                value={installationPrice}
+                onChange={(e) => setInstallationPrice(e.target.value)}
+                placeholder="ex: 250"
+                className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-red-500"
+              />
+              <p className="text-[11px] text-neutral-500">
+                Prețul va fi afișat pe pagina produsului ca opțiune suplimentară.
+              </p>
+            </div>
+          )}
         </div>
         <button
           type="submit"
@@ -806,6 +987,84 @@ export default function AdminEditProductPage() {
                     type="button"
                     onClick={() => handleDeleteExtraImage(img.id)}
                     className="text-[11px] text-red-400 hover:text-red-300"
+                  >
+                    Șterge
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-8 rounded-xl border border-neutral-800 bg-neutral-950/80 p-6 text-xs">
+        <h2 className="mb-3 text-sm font-semibold text-white">Manuale produs (PDF)</h2>
+        <p className="mb-3 text-[11px] text-neutral-400">
+          Poți adăuga unul sau mai multe manuale PDF. Acestea vor fi afișate ca link-uri de descărcare pe pagina produsului.
+        </p>
+
+        <div className="mb-4 flex flex-col gap-2">
+          <label className="text-neutral-300" htmlFor="manualFiles">
+            Încarcă manuale PDF
+          </label>
+          <input
+            id="manualFiles"
+            type="file"
+            accept="application/pdf"
+            multiple
+            onChange={(e) =>
+              setManualFiles(e.target.files ? Array.from(e.target.files) : [])
+            }
+            className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100 outline-none file:mr-2 file:rounded-md file:border-0 file:bg-neutral-800 file:px-3 file:py-1 file:text-xs file:text-neutral-100 focus:border-red-500"
+          />
+          <button
+            type="button"
+            disabled={manualFiles.length === 0 || addingManuals}
+            onClick={handleAddManuals}
+            className="inline-flex w-full items-center justify-center rounded-md bg-red-600 px-4 py-2 text-[11px] font-medium text-white hover:bg-red-500 disabled:opacity-60 sm:w-auto"
+          >
+            {addingManuals ? "Se încarcă manualele..." : "Adaugă manuale"}
+          </button>
+        </div>
+
+        {productManuals.length === 0 ? (
+          <p className="text-[11px] text-neutral-500">
+            Nu există încă manuale pentru acest produs.
+          </p>
+        ) : (
+          <ul className="mt-2 space-y-2">
+            {productManuals.map((m) => (
+              <li
+                key={m.id}
+                className="flex flex-col gap-2 rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-[11px] font-medium text-neutral-200">
+                    {m.title || "Manual PDF"}
+                  </p>
+                  <a
+                    href={m.pdf_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="truncate text-[11px] text-blue-400 hover:underline"
+                  >
+                    {m.pdf_url}
+                  </a>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={m.pdf_url}
+                    download
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-md border border-neutral-700 bg-neutral-950 px-3 py-1.5 text-[11px] text-neutral-200 hover:bg-neutral-800"
+                  >
+                    Descarcă
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteManual(m)}
+                    className="rounded-md border border-red-700 bg-transparent px-3 py-1.5 text-[11px] text-red-300 hover:bg-red-900/30"
                   >
                     Șterge
                   </button>

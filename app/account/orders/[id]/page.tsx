@@ -15,6 +15,8 @@ interface Order {
   shipping_method: string | null;
   payment_provider: string | null;
   payment_reference: string | null;
+  awb_number: string | null;
+  awb_added_at: string | null;
   shipping_address: any | null;
   billing_address: any | null;
   comment?: string | null;
@@ -64,7 +66,7 @@ export default function AccountOrderDetailPage() {
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select(
-          "id, status, total_amount, shipping_cost, vat_amount, created_at, shipping_method, payment_provider, payment_reference, shipping_address, billing_address, comment, user_id, account_type, company_name, company_cui, company_reg_com"
+          "id, status, total_amount, shipping_cost, vat_amount, created_at, shipping_method, payment_provider, payment_reference, awb_number, awb_added_at, shipping_address, billing_address, comment, user_id, account_type, company_name, company_cui, company_reg_com"
         )
         .eq("id", id)
         .maybeSingle<any>();
@@ -205,6 +207,33 @@ export default function AccountOrderDetailPage() {
           )}
         </section>
       </div>
+
+      {order.awb_number && (
+        <section className="mt-4 rounded-xl border border-green-700/30 bg-green-950/20 p-4 text-xs">
+          <h2 className="mb-3 text-sm font-semibold text-green-400">Tracking colet</h2>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-neutral-300">Număr AWB:</p>
+                <p className="font-mono text-sm text-neutral-100">{order.awb_number}</p>
+                {order.awb_added_at && (
+                  <p className="text-[10px] text-neutral-400">
+                    Adăugat la {new Date(order.awb_added_at).toLocaleString("ro-RO")}
+                  </p>
+                )}
+              </div>
+              <div className="text-green-400">
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <p className="text-[10px] text-neutral-400">
+              Poți folosi acest număr pentru a urmări statusul livrării pe site-ul curierului.
+            </p>
+          </div>
+        </section>
+      )}
 
       <section className="mt-4 grid gap-4 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)]">
         <div className="space-y-3 rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-xs text-neutral-200">

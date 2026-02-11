@@ -10,6 +10,9 @@ interface AddToCartButtonProps {
   imageUrl?: string | null;
   disabled?: boolean;
   quantity?: number;
+  hasInstallation?: boolean;
+  installationPrice?: number;
+  color?: string;
 }
 
 export function AddToCartButton({
@@ -19,6 +22,9 @@ export function AddToCartButton({
   imageUrl,
   disabled,
   quantity,
+  hasInstallation,
+  installationPrice,
+  color,
 }: AddToCartButtonProps) {
   const router = useRouter();
   const [showConfirm, setShowConfirm] = useState(false);
@@ -35,18 +41,34 @@ export function AddToCartButton({
     } catch {
       setInCart(false);
     }
-  }, [productId]);
+  }, [productId, color, hasInstallation]);
 
   function handleAdd() {
     const qty = quantity && quantity > 0 ? quantity : 1;
     const raw = typeof window !== "undefined" ? localStorage.getItem("cart") : null;
     const cart = raw ? JSON.parse(raw) : [];
 
-    const existing = cart.find((item: any) => item.id === productId);
+    // Create key for finding existing items (including installation and color)
+    const key = `${productId}__${color ?? ""}__${hasInstallation ? "with-install" : "no-install"}`;
+    const existing = cart.find((item: any) => 
+      item.id === productId && 
+      item.color === (color || null) && 
+      item.hasInstallation === (hasInstallation || false)
+    );
+    
     if (existing) {
       existing.quantity += qty;
     } else {
-      cart.push({ id: productId, name, price, quantity: qty, image: imageUrl ?? null });
+      cart.push({ 
+        id: productId, 
+        name, 
+        price, 
+        quantity: qty, 
+        image: imageUrl ?? null,
+        color: color || null,
+        hasInstallation: hasInstallation || false,
+        installationPrice: (hasInstallation && installationPrice) ? installationPrice : 0,
+      });
     }
 
     localStorage.setItem("cart", JSON.stringify(cart));

@@ -8,6 +8,7 @@ export default function ContactPage() {
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [honeypot, setHoneypot] = useState("");
@@ -50,6 +51,22 @@ export default function ContactPage() {
       return;
     }
 
+    if (!phone.trim()) {
+      setLoading(false);
+      setError("Numărul de telefon este obligatoriu.");
+      return;
+    }
+
+    // Validare strictă pentru telefon românesc
+    const phoneRegex = /^(\+4|0)?7[0-9]{8}$/;
+    const cleanPhone = phone.trim().replace(/[\s\-\(\)]/g, '');
+    
+    if (!phoneRegex.test(cleanPhone)) {
+      setLoading(false);
+      setError("Numărul de telefon nu este valid. Introdu un număr românesc valid (ex: 0741119449 sau +40741119449).");
+      return;
+    }
+
     const msgLen = message.trim().length;
     if (msgLen < 20 || msgLen > 2000) {
       setLoading(false);
@@ -78,6 +95,7 @@ export default function ContactPage() {
       body: JSON.stringify({
         name: name.trim(),
         email: email.trim(),
+        phone: phone.trim(),
         subject: subject.trim(),
         message: message.trim(),
         honeypot: honeypot.trim(),
@@ -96,10 +114,10 @@ export default function ContactPage() {
     setSubmitted(true);
     setName("");
     setEmail("");
+    setPhone("");
     setSubject("");
     setMessage("");
-    setHoneypot("");
-    setStartedAt(Date.now());
+    setCaptchaAnswer("");
     refreshCaptcha();
   }
 
@@ -174,6 +192,25 @@ export default function ContactPage() {
               className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 outline-none focus:border-blue-500"
             />
           </div>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-neutral-300" htmlFor="phone">
+            Telefon *
+          </label>
+          <input
+            id="phone"
+            type="tel"
+            required
+            maxLength={20}
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="ex: 0741119449"
+            className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-100 outline-none focus:border-blue-500"
+          />
+          <p className="text-[10px] text-neutral-500">
+            Format valid: 07xxxxxxxx sau +407xxxxxxxx
+          </p>
         </div>
 
         <div className="hidden">
