@@ -3,7 +3,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { RichTextEditor } from "@/components/rich-text-editor";
+import SummernoteEditor from "@/components/summernote-editor";
 
 type AdminProduct = {
   id: string;
@@ -801,7 +801,7 @@ export default function AdminEditProductPage() {
           <label className="text-neutral-300" htmlFor="description">
             Descriere lungă (opțional)
           </label>
-          <RichTextEditor
+          <SummernoteEditor
             value={description}
             onChange={setDescription}
             placeholder="Adaugă o descriere detaliată a produsului..."
