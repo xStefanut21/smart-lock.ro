@@ -12,10 +12,13 @@ interface Product {
   short_description?: string | null;
   slug: string;
   image_url?: string | null;
+  brand_id?: string | null;
   brand?: string | null;
   stock?: number | null;
   color_options?: string | null;
   category_id?: string | null;
+  product_options?: Array<{ id: string }>; // Check if product has options
+  brands?: Array<{ name: string }> | null;
 }
 
 interface Category {
@@ -27,19 +30,27 @@ interface Category {
   is_active?: boolean | null;
 }
 
+interface Brand {
+  id: string;
+  name: string;
+  is_active?: boolean;
+}
+
 interface Props {
   products: Product[];
   categories: Category[];
+  brands?: Brand[];
 }
 
-export function ProductsListingClient({ products, categories }: Props) {
+export function ProductsListingClient({ products, categories, brands = [] }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() || '';
   const [productsPerPage, setProductsPerPage] = useState(18);
   const [viewType, setViewType] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
   const [sortByPrice, setSortByPrice] = useState<"none" | "asc" | "desc">("none");
 
   const prices = products.map((p) => p.price);
@@ -49,33 +60,21 @@ export function ProductsListingClient({ products, categories }: Props) {
   const [minPrice, setMinPrice] = useState(globalMin);
   const [maxPrice, setMaxPrice] = useState(globalMax);
 
-  const brands = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          products
-            .map((p) => (p.brand?.trim() ? p.brand.trim() : null))
-            .filter(Boolean) as string[]
-        )
-      ).sort(),
-    [products]
-  );
-
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
 
   const hasActiveFilters =
     selectedCategoryId !== null ||
-    selectedBrands.length > 0 ||
+    selectedBrandIds.length > 0 ||
     minPrice !== globalMin ||
     maxPrice !== globalMax;
 
   // sincronizăm categoria selectată cu URL-ul (?category=slug sau /products/categories/slug)
   useEffect(() => {
-    let slug = searchParams.get("category");
+    let slug = searchParams?.get("category");
 
     // dacă nu există query, încercăm să extragem slug-ul din path: /products/categories/[slug]
     if (!slug) {
-      const segments = pathname.split("/").filter(Boolean);
+      const segments = (pathname || '').split("/").filter(Boolean);
       if (segments[0] === "products" && segments[1] === "categories" && segments[2]) {
         slug = segments[2];
       }
@@ -98,17 +97,15 @@ export function ProductsListingClient({ products, categories }: Props) {
         (minPrice === 0 || p.price >= minPrice) &&
         (maxPrice === 0 || p.price <= maxPrice);
 
-      const brandName = p.brand?.trim() || null;
-      const inBrand =
-        selectedBrands.length === 0 ||
-        (brandName && selectedBrands.includes(brandName));
-
       const inCategory =
         !selectedCategoryId || p.category_id === selectedCategoryId;
 
+      const inBrand =
+        selectedBrandIds.length === 0 || (p.brand_id && selectedBrandIds.includes(p.brand_id));
+
       return inPriceRange && inBrand && inCategory;
     });
-  }, [products, minPrice, maxPrice, selectedBrands, selectedCategoryId]);
+  }, [products, minPrice, maxPrice, selectedBrandIds, selectedCategoryId]);
 
   const filteredAndSorted = useMemo(() => {
     if (sortByPrice === "none") return filtered;
@@ -127,13 +124,6 @@ export function ProductsListingClient({ products, categories }: Props) {
   const start = (page - 1) * productsPerPage;
   const pageItems = filteredAndSorted.slice(start, start + productsPerPage);
 
-  function toggleBrand(brand: string) {
-    setCurrentPage(1);
-    setSelectedBrands((prev) =>
-      prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
-    );
-  }
-
   function handleMinChange(value: number) {
     const v = Math.min(value, maxPrice);
     setCurrentPage(1);
@@ -151,13 +141,22 @@ export function ProductsListingClient({ products, categories }: Props) {
     setMinPrice(globalMin);
     setMaxPrice(globalMax);
 
-    // resetăm producătorii
-    setSelectedBrands([]);
+    // resetăm brand-urile selectate
+    setSelectedBrandIds([]);
 
     // resetăm categoria și URL-ul legat de categorie
     handleCategoryClick(null);
 
     setCurrentPage(1);
+  }
+
+  function toggleBrand(brandId: string) {
+    setCurrentPage(1);
+    setSelectedBrandIds((prev) =>
+      prev.includes(brandId)
+        ? prev.filter((id) => id !== brandId)
+        : [...prev, brandId]
+    );
   }
 
   function handleCategoryClick(slug: string | null) {
@@ -245,28 +244,26 @@ export function ProductsListingClient({ products, categories }: Props) {
         </div>
 
         <div className="pt-3">
-          <h2 className="mb-2 text-sm font-semibold text-white">Producător</h2>
+          <h2 className="mb-2 text-sm font-semibold text-white">Brand</h2>
           {brands.length === 0 ? (
             <p className="text-[11px] text-neutral-500">
-              Deocamdată produsele nu au producător definit.
+              Nu sunt brand-uri disponibile.
             </p>
           ) : (
-            <ul className="space-y-1 text-[11px]">
+            <div className="grid grid-cols-2 gap-2">
               {brands.map((brand) => (
-                <li key={brand} className="flex items-center gap-2">
+                <label key={brand.id} className="flex items-center gap-2 text-[11px]">
                   <input
-                    id={`brand-${brand}`}
+                    id={`brand-${brand.id}`}
                     type="checkbox"
-                    checked={selectedBrands.includes(brand)}
-                    onChange={() => toggleBrand(brand)}
+                    checked={selectedBrandIds.includes(brand.id)}
+                    onChange={() => toggleBrand(brand.id)}
                     className="h-3 w-3 rounded border-neutral-700 bg-neutral-950 text-red-500"
                   />
-                  <label htmlFor={`brand-${brand}`} className="cursor-pointer text-neutral-200">
-                    {brand}
-                  </label>
-                </li>
+                  <span className="cursor-pointer text-neutral-200">{brand.name}</span>
+                </label>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       </aside>
@@ -379,11 +376,12 @@ export function ProductsListingClient({ products, categories }: Props) {
           }
         >
           {pageItems.map((product) => {
-            const hasColorOptions = !!product.color_options &&
+            const hasColorOptions = (!!product.color_options &&
               product.color_options
                 .split(",")
                 .map((c) => c.trim())
-                .filter(Boolean).length > 0;
+                .filter(Boolean).length > 0) ||
+              (product.product_options && product.product_options.length > 0);
 
             return (
             <div

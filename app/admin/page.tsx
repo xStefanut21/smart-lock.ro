@@ -138,6 +138,45 @@ export default function AdminDashboardPage() {
             Vezi, aprobă sau șterge review-urile lăsate de clienți pentru produse.
           </span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => router.push("/admin/brands")}
+          className="flex flex-col items-start rounded-lg border border-neutral-800 bg-neutral-950/80 p-4 text-left text-xs hover:border-red-600 hover:bg-neutral-900"
+        >
+          <span className="mb-1 text-sm font-semibold text-white">
+            🏷️ Management Brand-uri
+          </span>
+          <span className="text-neutral-400">
+            Adaugă, editează și gestionează brand-urile din catalogul de produse.
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => router.push("/admin/options")}
+          className="flex flex-col items-start rounded-lg border border-neutral-800 bg-neutral-950/80 p-4 text-left text-xs hover:border-red-600 hover:bg-neutral-900"
+        >
+          <span className="mb-1 text-sm font-semibold text-white">
+            🔧 Opțiuni produse
+          </span>
+          <span className="text-neutral-400">
+            Gestionează opțiunile disponibile pentru produse (mărime, culoare, material etc.).
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => router.push("/admin/seo")}
+          className="flex flex-col items-start rounded-lg border border-neutral-800 bg-neutral-950/80 p-4 text-left text-xs hover:border-red-600 hover:bg-neutral-900"
+        >
+          <span className="mb-1 text-sm font-semibold text-white">
+            🔍 Optimizare SEO
+          </span>
+          <span className="text-neutral-400">
+            Gestionează titluri, descrieri și meta tag-uri pentru optimizarea în motoarele de căutare.
+          </span>
+        </button>
       </div>
     </div>
   );

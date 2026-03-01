@@ -4,21 +4,28 @@ import { useEffect, useState, FormEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import SummernoteEditor from "@/components/summernote-editor";
+import ProductOptionsManager from "@/components/product-options-manager";
 
 type AdminProduct = {
   id: string;
   name: string | null;
   slug: string;
   price: number;
-  brand: string | null;
+  brand_id: string | null;
+  brand: string | null; // Keep for backward compatibility
   short_description: string | null;
   image_url: string | null;
   stock: number | null;
   is_active: boolean | null;
   description: string | null;
-  color_options?: string | null;
+  category_id: string | null;
   has_installation_option?: boolean | null;
   installation_price?: number | null;
+};
+
+type Brand = {
+  id: string;
+  name: string;
 };
 
 type Category = {
@@ -40,6 +47,13 @@ type ProductManual = {
   created_at: string;
 };
 
+type SelectedOption = {
+  option_id: string;
+  value_ids: string[]; // Array of selected value IDs
+  price_modifier: number;
+  required: boolean;
+};
+
 export default function AdminEditProductPage() {
   const router = useRouter();
   const params = useParams();
@@ -53,7 +67,8 @@ export default function AdminEditProductPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [price, setPrice] = useState("");
-  const [brand, setBrand] = useState("");
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [brandId, setBrandId] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -63,7 +78,6 @@ export default function AdminEditProductPage() {
   const [stock, setStock] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [description, setDescription] = useState("");
-  const [colorOptions, setColorOptions] = useState("");
   const [hasInstallationOption, setHasInstallationOption] = useState(false);
   const [installationPrice, setInstallationPrice] = useState("");
   const [extraImages, setExtraImages] = useState<ProductImage[]>([]);
@@ -71,6 +85,8 @@ export default function AdminEditProductPage() {
   const [addingImage, setAddingImage] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState<string | "">("");
+  const [selectedOptions, setSelectedOptions] = useState<SelectedOption[]>([]);
+  const [priceModifiers, setPriceModifiers] = useState<Record<string, number>>({});
 
   function getProductImagePathFromUrl(url: string | null | undefined): string | null {
     if (!url) return null;
@@ -125,7 +141,7 @@ export default function AdminEditProductPage() {
       const { data, error } = await supabase
         .from("products")
         .select(
-          "id, name, price, slug, short_description, image_url, brand, stock, is_active, description, color_options, category_id, has_installation_option, installation_price"
+          "id, name, price, slug, short_description, image_url, brand_id, brand, stock, is_active, description, category_id, has_installation_option, installation_price"
         )
         .eq("id", id)
         .maybeSingle<AdminProduct>();
@@ -136,21 +152,27 @@ export default function AdminEditProductPage() {
         return;
       }
 
-      setName(data.name ?? "");
-      setSlug(data.slug);
-      setPrice(String(data.price));
-      setBrand(data.brand ?? "");
-      setShortDescription(data.short_description ?? "");
-      setImageUrl(data.image_url ?? "");
-      setStock(
-        typeof data.stock === "number" && !Number.isNaN(data.stock)
-          ? String(data.stock)
-          : ""
-      );
-      setIsActive(data.is_active !== false);
-      setDescription(data.description ?? "");
-      setColorOptions(data.color_options ?? "");
-      setHasInstallationOption(data.has_installation_option === true);
+      // Load brands
+      const { data: brandsData } = await supabase
+        .from("brands")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+
+      setBrands(brandsData || []);
+
+      // Set product data
+      setName(data.name || "");
+      setSlug(data.slug || "");
+      setPrice(data.price?.toString() || "");
+      setBrandId(data.brand_id || "");
+      setShortDescription(data.short_description || "");
+      setImageUrl(data.image_url || "");
+      setStock(data.stock?.toString() || "");
+      setIsActive(data.is_active ?? true);
+      setDescription(data.description || "");
+      setCategoryId(data.category_id || "");
+      setHasInstallationOption(data.has_installation_option ?? false);
       setInstallationPrice(
         data.installation_price != null && !Number.isNaN(data.installation_price)
           ? String(data.installation_price)
@@ -167,6 +189,61 @@ export default function AdminEditProductPage() {
         .order("name", { ascending: true });
 
       setCategories((cats as Category[]) ?? []);
+
+      // Load product options
+      const { data: productOptionsData, error: optionsError } = await supabase
+        .from('product_options')
+        .select('*')
+        .eq('product_id', id);
+
+      // Load selected values
+      const { data: selectedValuesData, error: valuesError } = await supabase
+        .from('product_selected_values')
+        .select('option_id, value_id')
+        .eq('product_id', id);
+
+      console.log('Loading data for product:', id);
+      console.log('Product options error:', optionsError);
+      console.log('Selected values error:', valuesError);
+      console.log('Admin product options data:', { productOptionsData, selectedValuesData });
+
+      if (productOptionsData && selectedValuesData) {
+        // Group selected values by option_id
+        const valuesByOption: Record<string, string[]> = {};
+        selectedValuesData.forEach(sv => {
+          if (!valuesByOption[sv.option_id]) {
+            valuesByOption[sv.option_id] = [];
+          }
+          valuesByOption[sv.option_id].push(sv.value_id);
+        });
+
+        const options = productOptionsData.map(po => ({
+          option_id: po.option_id,
+          value_ids: valuesByOption[po.option_id] || [], // Get all selected values
+          price_modifier: po.price_modifier,
+          required: po.required
+        }));
+        setSelectedOptions(options);
+
+        // Load existing price modifiers for the selected values
+        const allValueIds = Object.values(valuesByOption).flat();
+        if (allValueIds.length > 0) {
+          const { data: priceModifiersData } = await supabase
+            .from('option_values')
+            .select('id, price_modifier')
+            .in('id', allValueIds);
+
+          if (priceModifiersData) {
+            const modifiers: Record<string, number> = {};
+            priceModifiersData.forEach(pmd => {
+              if (pmd.price_modifier !== null && pmd.price_modifier !== undefined) {
+                modifiers[pmd.id] = pmd.price_modifier;
+              }
+            });
+            setPriceModifiers(modifiers);
+          }
+        }
+      }
 
       const { data: imagesData } = await supabase
         .from("product_images")
@@ -530,13 +607,12 @@ export default function AdminEditProductPage() {
         name: name.trim() || null,
         slug: trimmedSlug,
         price: numericPrice,
-        brand: brand.trim() || null,
+        brand_id: brandId || null,
         short_description: shortDescription.trim() || null,
         image_url: finalImageUrl,
         stock: numericStock,
         is_active: isActive,
         description: description.trim() || null,
-        color_options: colorOptions.trim() || null,
         category_id: categoryId || null,
         has_installation_option: hasInstallationOption,
         installation_price: hasInstallationOption ? numericInstallationPrice : null,
@@ -592,6 +668,55 @@ export default function AdminEditProductPage() {
       }
     }
 
+    // Save product options
+    if (selectedOptions.length > 0) {
+      console.log('Saving selectedOptions:', selectedOptions);
+      console.log('Saving priceModifiers:', priceModifiers);
+      // Delete existing options and selected values first
+      const { error: deleteOptionsError } = await supabase.from('product_options').delete().eq('product_id', id);
+      const { error: deleteValuesError } = await supabase.from('product_selected_values').delete().eq('product_id', id);
+      
+      console.log('Delete errors:', { deleteOptionsError, deleteValuesError });
+      
+      // Insert new options
+      const productOptionsData = selectedOptions.map(sel => ({
+        product_id: id,
+        option_id: sel.option_id,
+        required: sel.required,
+        default_value_id: sel.value_ids && sel.value_ids.length > 0 ? sel.value_ids[0] : null, // Use first value as default
+      }));
+
+      console.log('Inserting productOptionsData:', productOptionsData);
+      const { error: insertOptionsError } = await supabase.from('product_options').insert(productOptionsData);
+      console.log('Insert options error:', insertOptionsError);
+
+      // Insert selected values
+      for (const sel of selectedOptions) {
+        if (sel.value_ids && sel.value_ids.length > 0) {
+          const selectedValuesData = sel.value_ids.map(valueId => ({
+            product_id: id,
+            option_id: sel.option_id,
+            value_id: valueId
+          }));
+          console.log('Inserting selectedValuesData for option', sel.option_id, ':', selectedValuesData);
+          const { error: insertValuesError } = await supabase.from('product_selected_values').insert(selectedValuesData);
+          console.log('Insert values error for option', sel.option_id, ':', insertValuesError);
+        }
+      }
+
+      // Update price modifiers for option values
+      if (Object.keys(priceModifiers).length > 0) {
+        console.log('Updating price modifiers:', priceModifiers);
+        for (const [valueId, modifier] of Object.entries(priceModifiers)) {
+          const { error: updateModifierError } = await supabase
+            .from('option_values')
+            .update({ price_modifier: modifier })
+            .eq('id', valueId);
+          console.log('Update modifier error for', valueId, ':', updateModifierError);
+        }
+      }
+    }
+
     setSaving(false);
 
     router.push("/admin/products");
@@ -603,6 +728,25 @@ export default function AdminEditProductPage() {
 
     setSaving(true);
     const supabase = createSupabaseBrowserClient();
+
+    // Check if product has related orders
+    const { data: orderItems, error: orderCheckError } = await supabase
+      .from("order_items")
+      .select("id")
+      .eq("product_id", id)
+      .limit(1);
+
+    if (orderCheckError) {
+      setError(`Eroare la verificarea comenzilor: ${orderCheckError.message}`);
+      setSaving(false);
+      return;
+    }
+
+    if (orderItems && orderItems.length > 0) {
+      setError("Nu poți șterge acest produs deoarece există comenzi care îl conțin. Dezactivează produsul în schimb pentru a-l ascunde din catalog.");
+      setSaving(false);
+      return;
+    }
 
     const pathsToDelete: string[] = [];
 
@@ -737,16 +881,22 @@ export default function AdminEditProductPage() {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-neutral-300" htmlFor="brand">
+          <label className="text-neutral-300" htmlFor="brandId">
             Brand
           </label>
-          <input
-            id="brand"
-            type="text"
-            value={brand}
-            onChange={(e) => setBrand(e.target.value)}
+          <select
+            id="brandId"
+            value={brandId}
+            onChange={(e) => setBrandId(e.target.value)}
             className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-red-500"
-          />
+          >
+            <option value="">Fără brand</option>
+            {brands.map((brand) => (
+              <option key={brand.id} value={brand.id}>
+                {brand.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-neutral-300" htmlFor="categoryId">
@@ -769,6 +919,15 @@ export default function AdminEditProductPage() {
             Categorie folosită pentru butoanele de filtre și afișarea pe pagina de produse.
           </p>
         </div>
+
+        <ProductOptionsManager
+          productId={id}
+          selectedOptions={selectedOptions}
+          onOptionsChange={setSelectedOptions}
+          priceModifiers={priceModifiers}
+          onPriceModifiersChange={setPriceModifiers}
+        />
+
         <div className="flex flex-col gap-1">
           <label className="text-neutral-300" htmlFor="shortDescription">
             Descriere scurtă
@@ -780,22 +939,6 @@ export default function AdminEditProductPage() {
             rows={3}
             className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-red-500"
           />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-neutral-300" htmlFor="colorOptions">
-            Culori disponibile (opțional)
-          </label>
-          <input
-            id="colorOptions"
-            type="text"
-            value={colorOptions}
-            onChange={(e) => setColorOptions(e.target.value)}
-            placeholder="ex: Negru, Gri, Alb"
-            className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-red-500"
-          />
-          <p className="text-[11px] text-neutral-500">
-            Introdu o listă de culori separate prin virgulă. Dacă lași câmpul gol, produsul nu va avea opțiuni de culoare.
-          </p>
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-neutral-300" htmlFor="description">

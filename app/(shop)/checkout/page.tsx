@@ -4,6 +4,54 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
+// Component to display selected option names
+function CartItemOption({ optionId, valueId }: { optionId: string; valueId: string }) {
+  const [optionName, setOptionName] = useState<string>("");
+  const [valueName, setValueName] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchOptionDetails() {
+      const supabase = createSupabaseBrowserClient();
+      
+      try {
+        // Fetch option name
+        const { data: optionData } = await supabase
+          .from('options')
+          .select('name')
+          .eq('id', optionId)
+          .single();
+        
+        // Fetch value name
+        const { data: valueData } = await supabase
+          .from('option_values')
+          .select('name')
+          .eq('id', valueId)
+          .single();
+
+        if (optionData) setOptionName(optionData.name);
+        if (valueData) setValueName(valueData.name);
+      } catch (error) {
+        console.error('Error fetching option details:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchOptionDetails();
+  }, [optionId, valueId]);
+
+  if (loading) {
+    return <p className="text-[11px] text-neutral-500">Încărcare opțiune...</p>;
+  }
+
+  return (
+    <p className="text-[11px] text-neutral-400">
+      {optionName}: <span className="text-neutral-300">{valueName}</span>
+    </p>
+  );
+}
 import { isValidRoPhone, normalizeRoPhone, sanitizePhone } from "@/lib/phone";
 
 interface CartItem {
@@ -13,6 +61,9 @@ interface CartItem {
   quantity: number;
   image?: string | null;
   color?: string;
+  hasInstallation?: boolean;
+  installationPrice?: number;
+  selectedOptions?: Record<string, string>;
 }
 
 export default function CheckoutPage() {
@@ -90,6 +141,14 @@ export default function CheckoutPage() {
     "Vrancea",
     "București",
   ];
+
+  function handleRemove(id: string, color?: string, hasInstallation?: boolean, selectedOptions?: Record<string, string>) {
+    console.log('Checkout handleRemove called with:', { id, color, hasInstallation, selectedOptions });
+    console.log('Current items:', items);
+    const filteredItems = items.filter((item) => !(item.id === id && item.color === color && item.hasInstallation === hasInstallation && JSON.stringify(item.selectedOptions || {}) === JSON.stringify(selectedOptions || {})));
+    console.log('Filtered items:', filteredItems);
+    setItems(filteredItems);
+  }
 
   useEffect(() => {
     const stored = localStorage.getItem("cart");
@@ -176,9 +235,6 @@ export default function CheckoutPage() {
     );
   }
 
-  function handleRemove(id: string) {
-    syncCart(items.filter((item) => item.id !== id));
-  }
 
   function sanitizePostal(value: string): string {
     // păstrăm doar cifre și limităm la 6 caractere (format cod poștal RO)
@@ -293,6 +349,9 @@ export default function CheckoutPage() {
       quantity: item.quantity,
       unit_price: item.price,
       color: item.color ?? null,
+      selected_options: item.selectedOptions ?? {},
+      has_installation: item.hasInstallation ?? false,
+      installation_price: item.installationPrice ?? 0,
     }));
 
     const { error: itemsError } = await supabase
@@ -630,7 +689,7 @@ export default function CheckoutPage() {
               <ul className="space-y-2">
                 {items.map((item) => (
                   <li
-                    key={item.id}
+                    key={`${item.id}-${item.color ?? "_"}-${item.hasInstallation ? "with-install" : "no-install"}-${JSON.stringify(item.selectedOptions || {})}`}
                     className="flex items-center justify-between gap-3"
                   >
                     <div className="flex items-center gap-3">
@@ -650,6 +709,13 @@ export default function CheckoutPage() {
                         <p className="text-[13px] text-neutral-100">{item.name}</p>
                         {item.color && (
                           <p className="text-[11px] text-neutral-400">Culoare: {item.color}</p>
+                        )}
+                        {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                          <div className="mt-1 space-y-1">
+                            {Object.entries(item.selectedOptions).map(([optionId, valueId]) => (
+                              <CartItemOption key={`${optionId}-${valueId}`} optionId={optionId} valueId={valueId} />
+                            ))}
+                          </div>
                         )}
                         <p className="text-[11px] text-neutral-400">
                           {new Intl.NumberFormat("ro-RO", {
@@ -690,7 +756,7 @@ export default function CheckoutPage() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => handleRemove(item.id)}
+                        onClick={() => handleRemove(item.id, item.color, item.hasInstallation, item.selectedOptions)}
                         className="ml-1 text-xs text-red-400 hover:text-red-300"
                         aria-label="Șterge produsul din coș"
                       >

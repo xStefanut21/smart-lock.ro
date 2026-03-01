@@ -13,6 +13,7 @@ interface AddToCartButtonProps {
   hasInstallation?: boolean;
   installationPrice?: number;
   color?: string;
+  selectedOptions?: Record<string, string>;
 }
 
 export function AddToCartButton({
@@ -25,6 +26,7 @@ export function AddToCartButton({
   hasInstallation,
   installationPrice,
   color,
+  selectedOptions,
 }: AddToCartButtonProps) {
   const router = useRouter();
   const [showConfirm, setShowConfirm] = useState(false);
@@ -35,25 +37,37 @@ export function AddToCartButton({
     try {
       const raw = localStorage.getItem("cart");
       if (!raw) return;
-      const cart = JSON.parse(raw) as { id: string }[];
-      const exists = cart.some((item) => item.id === productId);
+      const cart = JSON.parse(raw) as { 
+        id: string; 
+        color?: string; 
+        hasInstallation?: boolean; 
+        selectedOptions?: Record<string, string> 
+      }[];
+      const exists = cart.some((item) => 
+        item.id === productId && 
+        item.color === color && 
+        item.hasInstallation === hasInstallation && 
+        JSON.stringify(item.selectedOptions || {}) === JSON.stringify(selectedOptions || {})
+      );
       setInCart(exists);
     } catch {
       setInCart(false);
     }
-  }, [productId, color, hasInstallation]);
+  }, [productId, color, hasInstallation, selectedOptions]);
 
   function handleAdd() {
     const qty = quantity && quantity > 0 ? quantity : 1;
     const raw = typeof window !== "undefined" ? localStorage.getItem("cart") : null;
     const cart = raw ? JSON.parse(raw) : [];
 
-    // Create key for finding existing items (including installation and color)
-    const key = `${productId}__${color ?? ""}__${hasInstallation ? "with-install" : "no-install"}`;
+    // Create key for finding existing items (including installation, color and options)
+    const optionsKey = selectedOptions ? JSON.stringify(selectedOptions) : "";
+    const key = `${productId}__${color ?? ""}__${hasInstallation ? "with-install" : "no-install"}__${optionsKey}`;
     const existing = cart.find((item: any) => 
       item.id === productId && 
       item.color === (color || null) && 
-      item.hasInstallation === (hasInstallation || false)
+      item.hasInstallation === (hasInstallation || false) &&
+      JSON.stringify(item.selectedOptions || {}) === optionsKey
     );
     
     if (existing) {
@@ -68,6 +82,7 @@ export function AddToCartButton({
         color: color || null,
         hasInstallation: hasInstallation || false,
         installationPrice: (hasInstallation && installationPrice) ? installationPrice : 0,
+        selectedOptions: selectedOptions || {},
       });
     }
 

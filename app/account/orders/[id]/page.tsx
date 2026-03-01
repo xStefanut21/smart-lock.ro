@@ -35,6 +35,57 @@ interface OrderItem {
   product_slug?: string | null;
   product_image_url?: string | null;
   color?: string | null;
+  selected_options?: Record<string, string>;
+  has_installation?: boolean;
+  installation_price?: number;
+}
+
+// Component to display selected option names in order
+function OrderItemOption({ optionId, valueId }: { optionId: string; valueId: string }) {
+  const [optionName, setOptionName] = useState<string>("");
+  const [valueName, setValueName] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchOptionDetails() {
+      const supabase = createSupabaseBrowserClient();
+      
+      try {
+        // Fetch option name
+        const { data: optionData } = await supabase
+          .from('options')
+          .select('name')
+          .eq('id', optionId)
+          .single();
+        
+        // Fetch value name
+        const { data: valueData } = await supabase
+          .from('option_values')
+          .select('name')
+          .eq('id', valueId)
+          .single();
+
+        if (optionData) setOptionName(optionData.name);
+        if (valueData) setValueName(valueData.name);
+      } catch (error) {
+        console.error('Error fetching option details:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchOptionDetails();
+  }, [optionId, valueId]);
+
+  if (loading) {
+    return <p className="text-[11px] text-neutral-500">Încărcare opțiune...</p>;
+  }
+
+  return (
+    <p className="text-[11px] text-neutral-400">
+      {optionName}: <span className="text-neutral-300">{valueName}</span>
+    </p>
+  );
 }
 
 export default function AccountOrderDetailPage() {
@@ -79,7 +130,7 @@ export default function AccountOrderDetailPage() {
 
       const { data: itemsData } = await supabase
         .from("order_items")
-        .select("id, product_id, quantity, unit_price, color, products(name, slug, image_url)")
+        .select("id, product_id, quantity, unit_price, color, selected_options, has_installation, installation_price, products(name, slug, image_url)")
         .eq("order_id", id);
 
       const mappedItems: OrderItem[] = (itemsData || []).map((row: any) => ({
@@ -91,6 +142,9 @@ export default function AccountOrderDetailPage() {
         product_slug: row.products?.slug ?? null,
         product_image_url: row.products?.image_url ?? null,
         color: row.color ?? null,
+        selected_options: row.selected_options ?? {},
+        has_installation: row.has_installation ?? false,
+        installation_price: row.installation_price ?? 0,
       }));
 
       setOrder(orderData as Order);
@@ -286,6 +340,23 @@ export default function AccountOrderDetailPage() {
                       </p>
                     {item.color && (
                       <p className="text-[11px] text-neutral-400">Culoare: {item.color}</p>
+                    )}
+                    {item.selected_options && Object.keys(item.selected_options).length > 0 && (
+                      <div className="mt-1 space-y-1">
+                        {Object.entries(item.selected_options).map(([optionId, valueId]) => (
+                          <OrderItemOption key={`${optionId}-${valueId}`} optionId={optionId} valueId={valueId} />
+                        ))}
+                      </div>
+                    )}
+                    {item.has_installation && (
+                      <div className="mt-1 rounded-md border border-neutral-700 bg-neutral-900 p-2">
+                        <div className="flex items-center gap-1 text-[11px] text-emerald-400">
+                          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          <span>Montaj Expert inclus</span>
+                        </div>
+                      </div>
                     )}
                     <p className="text-[11px] text-neutral-400">Cantitate: {item.quantity}</p>
                     </div>

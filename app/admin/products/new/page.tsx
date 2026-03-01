@@ -4,10 +4,29 @@ import { useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import SummernoteEditor from "@/components/summernote-editor";
+import ProductOptionsManager from "@/components/product-options-manager";
+
+type Brand = {
+  id: string;
+  name: string;
+};
 
 type Category = {
   id: string;
   name: string | null;
+};
+
+type OptionType = {
+  id: string;
+  name: string;
+  values: { id: string; name: string }[];
+};
+
+type SelectedOption = {
+  option_id: string;
+  value_ids: string[]; // Array of selected value IDs
+  price_modifier: number;
+  required: boolean;
 };
 
 export default function AdminNewProductPage() {
@@ -19,18 +38,19 @@ export default function AdminNewProductPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [price, setPrice] = useState("");
-  const [brand, setBrand] = useState("");
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [brandId, setBrandId] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [stock, setStock] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [description, setDescription] = useState("");
-  const [colorOptions, setColorOptions] = useState("");
-  const [hasInstallationOption, setHasInstallationOption] = useState(false);
-  const [installationPrice, setInstallationPrice] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState<string | "">("");
+  const [availableOptions, setAvailableOptions] = useState<OptionType[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<SelectedOption[]>([]);
+  const [priceModifiers, setPriceModifiers] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -66,6 +86,35 @@ export default function AdminNewProductPage() {
         .order("name", { ascending: true });
 
       setCategories((cats as Category[]) ?? []);
+
+      // Load brands
+      const { data: brandsData } = await supabase
+        .from("brands")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name", { ascending: true });
+
+      setBrands(brandsData || []);
+
+      // Fetch options
+      const { data: optionsData } = await supabase
+        .from('options')
+        .select('id, name')
+        .order('name');
+
+      if (optionsData) {
+        const optionsWithValues = await Promise.all(
+          optionsData.map(async (opt) => {
+            const { data: vals } = await supabase
+              .from('option_values')
+              .select('id, name')
+              .eq('option_id', opt.id)
+              .order('sort_order');
+            return { ...opt, values: vals || [] };
+          })
+        );
+        setAvailableOptions(optionsWithValues);
+      }
     }
 
     checkAdmin();
@@ -103,15 +152,6 @@ export default function AdminNewProductPage() {
       return;
     }
 
-    const numericInstallationPrice = hasInstallationOption
-      ? Number(installationPrice.trim().replace(",", "."))
-      : 0;
-    if (hasInstallationOption && (Number.isNaN(numericInstallationPrice) || numericInstallationPrice < 0)) {
-      setError("Te rog introdu un preț valid pentru montaj (0 sau mai mare).");
-      setSaving(false);
-      return;
-    }
-
     let finalImageUrl = imageUrl.trim() || null;
 
     if (imageFile) {
@@ -141,19 +181,16 @@ export default function AdminNewProductPage() {
     const { data: inserted, error: insertError } = await supabase
       .from("products")
       .insert({
-        name: name.trim() || null,
+        name: name.trim(),
         slug: trimmedSlug,
         price: numericPrice,
-        brand: brand.trim() || null,
+        brand_id: brandId || null,
         short_description: shortDescription.trim() || null,
         image_url: finalImageUrl,
         stock: numericStock,
         is_active: isActive,
         description: description.trim() || null,
-        color_options: colorOptions.trim() || null,
         category_id: categoryId || null,
-        has_installation_option: hasInstallationOption,
-        installation_price: hasInstallationOption ? numericInstallationPrice : null,
       })
       .select("id")
       .maybeSingle<{ id: string }>();
@@ -171,6 +208,47 @@ export default function AdminNewProductPage() {
         image_url: finalImageUrl,
         sort_order: 0,
       });
+    }
+
+    // Save product options
+    if (selectedOptions.length > 0) {
+      // Insert product options
+      const productOptionsData = selectedOptions.map(sel => ({
+        product_id: inserted.id,
+        option_id: sel.option_id,
+        required: sel.required,
+        default_value_id: sel.value_ids && sel.value_ids.length > 0 ? sel.value_ids[0] : null, // Use first value as default
+      }));
+
+      console.log('Inserting productOptionsData:', productOptionsData);
+      const { error: insertOptionsError } = await supabase.from('product_options').insert(productOptionsData);
+      console.log('Insert options error:', insertOptionsError);
+
+      // Insert selected values
+      for (const sel of selectedOptions) {
+        if (sel.value_ids && sel.value_ids.length > 0) {
+          const selectedValuesData = sel.value_ids.map(valueId => ({
+            product_id: inserted.id,
+            option_id: sel.option_id,
+            value_id: valueId
+          }));
+          console.log('Inserting selectedValuesData for option', sel.option_id, ':', selectedValuesData);
+          const { error: insertValuesError } = await supabase.from('product_selected_values').insert(selectedValuesData);
+          console.log('Insert values error for option', sel.option_id, ':', insertValuesError);
+        }
+      }
+
+      // Update price modifiers for option values
+      if (Object.keys(priceModifiers).length > 0) {
+        console.log('Updating price modifiers:', priceModifiers);
+        for (const [valueId, modifier] of Object.entries(priceModifiers)) {
+          const { error: updateModifierError } = await supabase
+            .from('option_values')
+            .update({ price_modifier: modifier })
+            .eq('id', valueId);
+          console.log('Update modifier error for', valueId, ':', updateModifierError);
+        }
+      }
     }
 
     setSaving(false);
@@ -248,17 +326,22 @@ export default function AdminNewProductPage() {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-neutral-300" htmlFor="brand">
+          <label className="text-neutral-300" htmlFor="brandId">
             Brand
           </label>
-          <input
-            id="brand"
-            type="text"
-            value={brand}
-            onChange={(e) => setBrand(e.target.value)}
-            placeholder="ex: Yale"
+          <select
+            id="brandId"
+            value={brandId}
+            onChange={(e) => setBrandId(e.target.value)}
             className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-red-500"
-          />
+          >
+            <option value="">Fără brand</option>
+            {brands.map((brand) => (
+              <option key={brand.id} value={brand.id}>
+                {brand.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-neutral-300" htmlFor="categoryId">
@@ -281,6 +364,15 @@ export default function AdminNewProductPage() {
             Categorie folosită pentru butoanele de filtre și afișarea pe pagina de produse.
           </p>
         </div>
+
+        <ProductOptionsManager
+          productId=""
+          selectedOptions={selectedOptions}
+          onOptionsChange={setSelectedOptions}
+          priceModifiers={priceModifiers}
+          onPriceModifiersChange={setPriceModifiers}
+        />
+
         <div className="flex flex-col gap-1">
           <label className="text-neutral-300" htmlFor="shortDescription">
             Descriere scurtă
@@ -292,22 +384,6 @@ export default function AdminNewProductPage() {
             rows={3}
             className="rounded-md border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-red-500"
           />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-neutral-300" htmlFor="colorOptions">
-            Culori disponibile (opțional)
-          </label>
-          <input
-            id="colorOptions"
-            type="text"
-            value={colorOptions}
-            onChange={(e) => setColorOptions(e.target.value)}
-            placeholder="ex: Negru, Gri, Alb"
-            className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-red-500"
-          />
-          <p className="text-[11px] text-neutral-500">
-            Introdu o listă de culori separate prin virgulă. Dacă lași câmpul gol, produsul nu va avea opțiuni de culoare.
-          </p>
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-neutral-300" htmlFor="description">
@@ -378,40 +454,6 @@ export default function AdminNewProductPage() {
               Produs activ (vizibil pe site)
             </label>
           </div>
-        </div>
-        <div className="space-y-4 rounded-xl border border-neutral-800 bg-neutral-950/80 p-6 text-xs">
-          <h2 className="text-sm font-semibold text-white">Opțiune montaj</h2>
-          <div className="flex items-center gap-2">
-            <input
-              id="hasInstallationOption"
-              type="checkbox"
-              checked={hasInstallationOption}
-              onChange={(e) => setHasInstallationOption(e.target.checked)}
-              className="h-4 w-4 rounded border-neutral-700 bg-neutral-900 text-red-600 focus:ring-red-600"
-            />
-            <label htmlFor="hasInstallationOption" className="text-xs text-neutral-300">
-              Acest produs are opțiune de montaj
-            </label>
-          </div>
-          {hasInstallationOption && (
-            <div className="flex flex-col gap-1">
-              <label className="text-neutral-300" htmlFor="installationPrice">
-                Preț montaj (RON)
-              </label>
-              <input
-                id="installationPrice"
-                type="text"
-                inputMode="decimal"
-                value={installationPrice}
-                onChange={(e) => setInstallationPrice(e.target.value)}
-                placeholder="ex: 250"
-                className="h-9 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none focus:border-red-500"
-              />
-              <p className="text-[11px] text-neutral-500">
-                Prețul va fi afișat pe pagina produsului ca opțiune suplimentară.
-              </p>
-            </div>
-          )}
         </div>
         <button
           type="submit"

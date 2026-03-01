@@ -29,10 +29,16 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 export default async function CategoryProductsPage() {
   const supabase = createSupabaseServerClient();
 
+  const { data: category } = await supabase
+    .from("categories")
+    .select("id, name, slug")
+    .eq("is_active", true)
+    .maybeSingle();
+
   const { data: products } = await supabase
     .from("products")
     .select(
-      "id, name, price, short_description, slug, image_url, brand, stock, is_active, color_options, category_id"
+      "id, name, price, short_description, slug, image_url, brand_id, brand, stock, is_active, color_options, category_id, brands!left(name)"
     )
     .eq("is_active", true)
     .order("name", { ascending: true });
@@ -42,6 +48,12 @@ export default async function CategoryProductsPage() {
     .select("id, name, slug, image_url, sort_order, is_active")
     .eq("is_active", true)
     .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+
+  const { data: brands } = await supabase
+    .from("brands")
+    .select("id, name, is_active")
+    .eq("is_active", true)
     .order("name", { ascending: true });
 
   return (
@@ -55,13 +67,13 @@ export default async function CategoryProductsPage() {
           Produse
         </a>
         <span className="mx-1">/</span>
-        <span className="text-neutral-300">Categorie</span>
+        <span className="text-neutral-300">{category?.name || "Categorie"}</span>
       </nav>
 
       {products && products.length > 0 ? (
-        <ProductsListingClient products={products} categories={categories ?? []} />
+        <ProductsListingClient products={products} categories={categories ?? []} brands={brands ?? []} />
       ) : (
-        <p className="text-sm text-neutral-400">Nu sunt produse disponibile încă.</p>
+        <p className="text-sm text-neutral-400">Nu sunt produse disponibile în această categorie.</p>
       )}
     </div>
   );

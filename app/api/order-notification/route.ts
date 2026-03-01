@@ -95,7 +95,7 @@ export async function POST(req: Request) {
 
     const { data: items } = await adminSupabase
       .from("order_items")
-      .select("quantity, unit_price, color, products(name, slug, image_url)")
+      .select("quantity, unit_price, color, selected_options, has_installation, installation_price, products(name, slug, image_url)")
       .eq("order_id", orderId);
 
     const formatMoney = (value: number) =>
@@ -104,7 +104,42 @@ export async function POST(req: Request) {
         currency: "RON",
       }).format(value);
 
-    const mappedLines = (items || []).map((row: any) => {
+    // Function to format selected options for email
+    const formatOptions = async (selectedOptions: Record<string, string>) => {
+      if (!selectedOptions || Object.keys(selectedOptions).length === 0) {
+        return "";
+      }
+
+      const optionNames = [];
+      
+      for (const [optionId, valueId] of Object.entries(selectedOptions)) {
+        try {
+          // Fetch option name
+          const { data: optionData } = await adminSupabase
+            .from('options')
+            .select('name')
+            .eq('id', optionId)
+            .single();
+          
+          // Fetch value name
+          const { data: valueData } = await adminSupabase
+            .from('option_values')
+            .select('name')
+            .eq('id', valueId)
+            .single();
+
+          if (optionData && valueData) {
+            optionNames.push(`${optionData.name}: ${valueData.name}`);
+          }
+        } catch (error) {
+          console.error('Error fetching option details for email:', error);
+        }
+      }
+
+      return optionNames.length > 0 ? `\n${optionNames.join('\n')}` : "";
+    };
+
+    const mappedLines = await Promise.all((items || []).map(async (row: any) => {
       const name = row.products?.name ?? "Produs";
       const color = row.color ? ` (${row.color})` : "";
       const slug = row.products?.slug ?? null;
@@ -112,6 +147,14 @@ export async function POST(req: Request) {
       const qty = typeof row.quantity === "number" ? row.quantity : 0;
       const unit = typeof row.unit_price === "number" ? row.unit_price : 0;
       const lineTotal = qty * unit;
+      
+      // Format options
+      const optionsText = await formatOptions(row.selected_options || {});
+      
+      // Format installation
+      const installationText = row.has_installation 
+        ? `\nMontaj Expert: ${formatMoney(row.installation_price || 0)}` 
+        : "";
 
       const productUrl = slug
         ? `${baseUrl}/products/${encodeURIComponent(slug)}`
@@ -125,14 +168,14 @@ export async function POST(req: Request) {
           : null;
 
       return {
-        name: `${name}${color}`,
+        name: `${name}${color}${optionsText}${installationText}`,
         productUrl,
         imageUrl: absoluteImageUrl,
         qty,
         unit,
         total: lineTotal,
       };
-    });
+    }));
 
     const lines = mappedLines.map((l) => {
       const suffix = l.productUrl ? ` (${l.productUrl})` : "";

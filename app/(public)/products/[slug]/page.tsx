@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AddToCartButton } from "@/components/add-to-cart-button";
 import { ProductAddToCartWithInstallation } from "@/components/product-add-to-cart-with-installation";
 import { ProductColorAddToCart } from "@/components/product-color-add-to-cart";
+import { ProductOptionsAddToCart } from "@/components/product-options-add-to-cart";
 import { WishlistToggleButton } from "@/components/wishlist-toggle-button";
 import { ProductImageGallery } from "@/components/product-image-gallery";
 import { ProductDescriptionReviewsTabs } from "@/components/product-description-reviews-tabs";
@@ -23,12 +24,36 @@ export async function generateMetadata(
 
   const { data: product } = await supabase
     .from("products")
-    .select("name")
+    .select("name, meta_title, meta_description, meta_keywords, image_url, image_alt, image_title")
     .eq("slug", slug)
-    .maybeSingle<{ name: string | null }>();
+    .maybeSingle<{ 
+      name: string | null;
+      meta_title: string | null;
+      meta_description: string | null;
+      meta_keywords: string | null;
+      image_url: string | null;
+      image_alt: string | null;
+      image_title: string | null;
+    }>();
+
+  const title = product?.meta_title || product?.name || "Produs";
+  const description = product?.meta_description || `Descoperă ${product?.name || 'acest produs'} la prețul cel mai bun. Livrare rapidă în toată România.`;
+  const keywords = product?.meta_keywords;
 
   return {
-    title: product?.name || "Produs",
+    title,
+    description,
+    keywords: keywords ? keywords.split(',').map(k => k.trim()) : undefined,
+    openGraph: {
+      title,
+      description,
+      images: product?.image_url ? [{ url: product.image_url, alt: product.image_alt || product.name || undefined }] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
   };
 }
 
@@ -39,7 +64,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const { data: product } = await supabase
     .from("products")
     .select(
-      "id, name, price, short_description, description, specs, image_url, stock, is_active, slug, color_options, has_installation_option, installation_price, product_images(image_url, sort_order), product_manuals(id, title, pdf_url, created_at)"
+      "id, name, price, short_description, description, specs, image_url, stock, is_active, slug, color_options, has_installation_option, installation_price, meta_title, meta_description, meta_keywords, seo_h1, seo_h2, seo_h3, image_alt, image_title, etichete_produs, product_images(image_url, sort_order), product_manuals(id, title, pdf_url, created_at), product_options!left(id, required, price_modifier, default_value_id, options!left(id, name))"
     )
     .eq("slug", slug)
     .maybeSingle<any>();
@@ -110,13 +135,16 @@ export default async function ProductPage({ params }: ProductPageProps) {
       <div className="mt-4 flex flex-col gap-8 md:flex-row">
         {galleryImages.length > 0 && (
           <div className="md:w-1/2">
-            <ProductImageGallery images={galleryImages} alt={product.name} />
+            <ProductImageGallery 
+              images={galleryImages} 
+              alt={product.image_alt || product.name}
+            />
           </div>
         )}
         <div className="flex-1">
           <div className="flex items-start justify-between gap-3">
             <h1 className="text-2xl font-semibold md:text-3xl">
-              {product.name}
+              {product.seo_h1 || product.name}
             </h1>
             <WishlistToggleButton
               productId={product.id}
@@ -186,12 +214,19 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 stockAvailable={typeof product.stock === "number" && product.stock > 0}
                 hasInstallationOption={product.has_installation_option === true}
                 installationPrice={product.installation_price}
-                colors={
-                  typeof product.color_options === "string" && product.color_options.trim()
-                    ? product.color_options
-                        .split(",")
-                        .map((c: string) => c.trim())
-                        .filter((c: string) => c.length > 0)
+                productOptions={
+                  product.product_options && Array.isArray(product.product_options) && product.product_options.length > 0
+                    ? (() => {
+                        const options = product.product_options.map((po: any) => ({
+                          optionId: po.options?.id || '',
+                          optionName: po.options?.name || '',
+                          required: po.required || false,
+                          priceModifier: po.price_modifier || 0,
+                          defaultValueId: po.default_value_id || undefined,
+                          values: [] // Will be loaded by client component
+                        }));
+                        return options;
+                      })()
                     : undefined
                 }
               />
@@ -199,6 +234,24 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </div>
         </div>
       </div>
+
+      {/* Custom SEO Content Sections */}
+      {(product.seo_h2 || product.seo_h3) && (
+        <div className="mt-8 space-y-6">
+          {product.seo_h2 && (
+            <section>
+              <h2 className="text-xl font-semibold text-white mb-3">
+                {product.seo_h2}
+              </h2>
+              {product.seo_h3 && (
+                <h3 className="text-lg font-medium text-neutral-200 mb-2">
+                  {product.seo_h3}
+                </h3>
+              )}
+            </section>
+          )}
+        </div>
+      )}
 
       <ProductDescriptionReviewsTabs
         productId={product.id}

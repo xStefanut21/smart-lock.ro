@@ -13,6 +13,55 @@ interface CartItem {
   color?: string;
   hasInstallation?: boolean;
   installationPrice?: number;
+  selectedOptions?: Record<string, string>;
+}
+
+// Component to display selected option names
+function CartItemOption({ optionId, valueId }: { optionId: string; valueId: string }) {
+  const [optionName, setOptionName] = useState<string>("");
+  const [valueName, setValueName] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchOptionDetails() {
+      const supabase = createSupabaseBrowserClient();
+      
+      try {
+        // Fetch option name
+        const { data: optionData } = await supabase
+          .from('options')
+          .select('name')
+          .eq('id', optionId)
+          .single();
+        
+        // Fetch value name
+        const { data: valueData } = await supabase
+          .from('option_values')
+          .select('name')
+          .eq('id', valueId)
+          .single();
+
+        if (optionData) setOptionName(optionData.name);
+        if (valueData) setValueName(valueData.name);
+      } catch (error) {
+        console.error('Error fetching option details:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchOptionDetails();
+  }, [optionId, valueId]);
+
+  if (loading) {
+    return <p className="text-[11px] text-neutral-500">Încărcare opțiune...</p>;
+  }
+
+  return (
+    <p className="text-[11px] text-neutral-400">
+      {optionName}: <span className="text-neutral-300">{valueName}</span>
+    </p>
+  );
 }
 
 export default function CartPage() {
@@ -31,10 +80,11 @@ export default function CartPage() {
     if (stored) {
       try {
         const raw = JSON.parse(stored) as CartItem[];
-        // normalizăm: o singură intrare per combinație (id, color), cu cantități adunate
+        // normalizăm: o singură intrare per combinație (id, color, options), cu cantități adunate
         const map = new Map<string, CartItem>();
         for (const item of raw) {
-          const key = `${item.id}__${item.color ?? ""}__${item.hasInstallation ? "with-install" : "no-install"}`;
+          const optionsKey = JSON.stringify(item.selectedOptions || {});
+          const key = `${item.id}__${item.color ?? ""}__${item.hasInstallation ? "with-install" : "no-install"}__${optionsKey}`;
           const existing = map.get(key);
           if (existing) {
             map.set(key, {
@@ -71,28 +121,28 @@ export default function CartPage() {
     }
   }
 
-  function handleIncrease(id: string, color?: string, hasInstallation?: boolean) {
+  function handleIncrease(id: string, color?: string, hasInstallation?: boolean, selectedOptions?: Record<string, string>) {
     syncAndSetItems(
       items.map((item) =>
-        item.id === id && item.color === color && item.hasInstallation === hasInstallation
+        item.id === id && item.color === color && item.hasInstallation === hasInstallation && JSON.stringify(item.selectedOptions || {}) === JSON.stringify(selectedOptions || {})
           ? { ...item, quantity: item.quantity + 1 }
           : item
       )
     );
   }
 
-  function handleDecrease(id: string, color?: string, hasInstallation?: boolean) {
+  function handleDecrease(id: string, color?: string, hasInstallation?: boolean, selectedOptions?: Record<string, string>) {
     syncAndSetItems(
       items.map((item) =>
-        item.id === id && item.color === color && item.hasInstallation === hasInstallation && item.quantity > 1
+        item.id === id && item.color === color && item.hasInstallation === hasInstallation && JSON.stringify(item.selectedOptions || {}) === JSON.stringify(selectedOptions || {}) && item.quantity > 1
           ? { ...item, quantity: item.quantity - 1 }
           : item
       )
     );
   }
 
-  function handleRemove(id: string, color?: string, hasInstallation?: boolean) {
-    syncAndSetItems(items.filter((item) => !(item.id === id && item.color === color && item.hasInstallation === hasInstallation)));
+  function handleRemove(id: string, color?: string, hasInstallation?: boolean, selectedOptions?: Record<string, string>) {
+    syncAndSetItems(items.filter((item) => !(item.id === id && item.color === color && item.hasInstallation === hasInstallation && JSON.stringify(item.selectedOptions || {}) === JSON.stringify(selectedOptions || {}))));
   }
 
   return (
@@ -105,7 +155,7 @@ export default function CartPage() {
           <ul className="mb-6 space-y-3">
             {items.map((item) => (
               <li
-                key={`${item.id}-${item.color ?? "_"}-${item.hasInstallation ? "with-install" : "no-install"}`}
+                key={`${item.id}-${item.color ?? "_"}-${item.hasInstallation ? "with-install" : "no-install"}-${JSON.stringify(item.selectedOptions || {})}`}
                 className="flex flex-col gap-3 rounded-lg border border-neutral-800 bg-neutral-950 p-3 text-sm text-neutral-100 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex items-center gap-3">
@@ -125,6 +175,13 @@ export default function CartPage() {
                     <p className="text-sm text-white">{item.name}</p>
                     {item.color && (
                       <p className="text-[11px] text-neutral-400">Culoare: {item.color}</p>
+                    )}
+                    {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                      <div className="mt-1 space-y-1">
+                        {Object.entries(item.selectedOptions).map(([optionId, valueId]) => (
+                          <CartItemOption key={`${optionId}-${valueId}`} optionId={optionId} valueId={valueId} />
+                        ))}
+                      </div>
                     )}
                     <p className="text-xs text-neutral-400">
                       {new Intl.NumberFormat("ro-RO", {
@@ -169,7 +226,7 @@ export default function CartPage() {
                   <div className="flex items-center rounded-md border border-neutral-700 bg-neutral-900 text-xs">
                     <button
                       type="button"
-                      onClick={() => handleDecrease(item.id, item.color, item.hasInstallation)}
+                      onClick={() => handleDecrease(item.id, item.color, item.hasInstallation, item.selectedOptions)}
                       className="flex h-7 w-7 items-center justify-center border-r border-neutral-700 text-neutral-300 hover:bg-neutral-800"
                     >
                       −
@@ -179,7 +236,7 @@ export default function CartPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleIncrease(item.id, item.color, item.hasInstallation)}
+                      onClick={() => handleIncrease(item.id, item.color, item.hasInstallation, item.selectedOptions)}
                       className="flex h-7 w-7 items-center justify-center border-l border-neutral-700 text-neutral-300 hover:bg-neutral-800"
                     >
                       +
@@ -197,7 +254,7 @@ export default function CartPage() {
 
                   <button
                     type="button"
-                    onClick={() => handleRemove(item.id, item.color, item.hasInstallation)}
+                    onClick={() => handleRemove(item.id, item.color, item.hasInstallation, item.selectedOptions)}
                     className="ml-1 text-xs text-red-400 hover:text-red-300"
                     aria-label="Șterge produsul din coș"
                   >
