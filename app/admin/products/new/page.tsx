@@ -50,7 +50,7 @@ export default function AdminNewProductPage() {
   const [categoryId, setCategoryId] = useState<string | "">("");
   const [availableOptions, setAvailableOptions] = useState<OptionType[]>([]);
   const [selectedOptions, setSelectedOptions] = useState<SelectedOption[]>([]);
-  const [priceModifiers, setPriceModifiers] = useState<Record<string, number>>({});
+  const [priceModifiers, setPriceModifiers] = useState<Record<string, number | null>>({});
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();

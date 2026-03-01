@@ -86,7 +86,7 @@ export default function AdminEditProductPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState<string | "">("");
   const [selectedOptions, setSelectedOptions] = useState<SelectedOption[]>([]);
-  const [priceModifiers, setPriceModifiers] = useState<Record<string, number>>({});
+  const [priceModifiers, setPriceModifiers] = useState<Record<string, number | null>>({});
 
   function getProductImagePathFromUrl(url: string | null | undefined): string | null {
     if (!url) return null;
