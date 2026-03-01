@@ -38,8 +38,8 @@ interface ProductOptionsManagerProps {
   productId: string;
   selectedOptions: SelectedOption[];
   onOptionsChange: (options: SelectedOption[]) => void;
-  priceModifiers?: Record<string, number>; // Local price modifiers state
-  onPriceModifiersChange?: (modifiers: Record<string, number>) => void; // Callback to update parent
+  priceModifiers?: Record<string, number | null>; // Local price modifiers state
+  onPriceModifiersChange?: (modifiers: Record<string, number | null>) => void; // Callback to update parent
   className?: string;
 }
 
@@ -227,7 +227,7 @@ export default function ProductOptionsManager({
                                   type="text"
                                   inputMode="decimal"
                                   placeholder="0.00"
-                                  value={inputValues[value.id] !== undefined ? inputValues[value.id] : (priceModifiers[value.id] === null ? '' : (priceModifiers[value.id] !== undefined ? priceModifiers[value.id] : (value.price_modifier || '')))}
+                                  value={inputValues[value.id] !== undefined ? inputValues[value.id] : (priceModifiers[value.id] === null ? '' : (priceModifiers[value.id] !== undefined ? String(priceModifiers[value.id]) : (value.price_modifier !== null ? String(value.price_modifier) : '')))}
                                   onChange={(e) => {
                                     const newValue = e.target.value;
                                     // Allow any input, including empty string and "-"
